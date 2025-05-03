@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    // --- Basic Options ---
+    "target": "ESNext",                 // Specify ECMAScript target version
+    "module": "ESNext",                 // Specify module code generation
+    "esModuleInterop": true,            // Enables emit interoperability between CommonJS and ES Modules
+    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file.
+    "skipLibCheck": true,               // Skip type checking of declaration files.
+
+    // --- Strictness ---
+    "strict": true,                     // Enable all strict type-checking options
+
+    // --- Module Resolution ---
+    "moduleResolution": "Bundler",      // How modules get resolved (modern option, good with Vite/Rollup)
+    // "baseUrl": ".",                  // Base directory to resolve non-absolute module names (often used with paths)
+    // "paths": {                       // Series of entries which re-map imports to lookup locations relative to the 'baseUrl'.
+    //   "@/*": ["./src/*"]
+    // },
+
+    // --- Library Build Options ---
+    "declaration": true,                // Generates corresponding '.d.ts' file.
+    "declarationDir": "./dist",         // Output directory for generated declaration files.
+    "outDir": "./dist",                 // Redirect output structure to the directory (Vite handles the actual bundling)
+    "rootDir": "./src",                 // Specify the root directory of input files. Only affects 'outDir' structure.
+    "declarationMap": true,             // Generates a sourcemap for each corresponding '.d.ts' file.
+    "sourceMap": true,                  // Generates corresponding '.map' file. (Vite also handles this, but good for tsc checks)
+
+    // --- Project Structure ---
+    "allowJs": false,                   // Allow javascript files to be compiled (set to true if mixing JS/TS)
+    "resolveJsonModule": true,          // Include modules imported with '.json' extension
+    "isolatedModules": true,            // Transpile each file as a separate module (required by Vite)
+
+    // --- Environment ---
+    "lib": ["ESNext", "DOM", "DOM.Iterable"] // Specify library files to be included in the compilation.
+  },
+  "include": ["src/**/*"],              // Specifies files to include in the program
+  "exclude": ["node_modules", "dist", "dev", "**/*.spec.ts", "**/*.test.ts"] // Specifies files to exclude
+}

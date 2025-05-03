@@ -1,4 +1,22 @@
 {
   "name": "letterpeople",
-  "packageManager": "yarn@4.6.0"
+  "version": "0.0.1",
+  "main": "./dist/letterpeople.umd.js",
+  "module": "./dis/letterpeople.es.js",
+  "types": "./dist/index.d.ts",
+  "packageManager": "yarn@4.6.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build"
+  },
+  "dependencies": {
+    "animejs": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/animejs": "^3.1.13",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.4",
+    "vite-plugin-dts": "^4.5.3"
+  }
 }
