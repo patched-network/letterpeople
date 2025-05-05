@@ -3,8 +3,185 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>LetterDev</title>
-        <script type="module" src="/dev/main.ts"></script>
+        <title>LetterPeople Dev Playground</title>
+        <style>
+            :root {
+                /* Define CSS variable for letter size */
+                --letter-size: 80px;
+            }
+            body {
+                font-family: sans-serif;
+                padding: 20px;
+                display: flex;
+                gap: 30px;
+            }
+            .controls {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                border: 1px solid #eee;
+                padding: 15px;
+                border-radius: 5px;
+                height: fit-content; /* Prevent controls stretching */
+                min-width: 250px; /* Give controls some space */
+            }
+            .controls label,
+            .controls .checkbox-label {
+                /* Style checkbox label similarly */
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                font-size: 0.9em;
+            }
+            .controls .checkbox-label span {
+                /* Align checkbox text better */
+                margin-bottom: 5px;
+            }
+            .controls input[type="text"],
+            .controls input[type="number"],
+            .controls input[type="color"],
+            .controls input[type="range"] {
+                /* Style range input */
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                box-sizing: border-box; /* Include padding/border in width */
+                width: 100%; /* Make inputs fill label width */
+            }
+            .controls input[type="color"] {
+                height: 30px; /* Make color picker easier to click */
+                padding: 2px; /* Adjust padding for color type */
+            }
+            .controls input[type="checkbox"] {
+                margin-top: 5px;
+                align-self: flex-start; /* Align checkbox itself */
+            }
+            .controls .range-value {
+                /* Display slider value */
+                font-size: 0.8em;
+                color: #555;
+                text-align: right;
+            }
+
+            #letter-display-area {
+                border: 1px dashed dodgerblue;
+                padding: 10px;
+                min-height: 100px; /* Ensure area is visible */
+                flex-grow: 1; /* Allow display area to take remaining space */
+                display: flex; /* Arrange letters horizontally */
+                flex-wrap: wrap; /* Allow wrapping */
+                gap: 10px; /* Space between letters */
+                align-items: flex-start; /* Align tops of letters */
+            }
+            .letter-wrapper {
+                /* Use CSS variable for size */
+                width: var(--letter-size);
+                height: var(--letter-size);
+                /* border: 1px solid lightgrey; */ /* Optional: visualize wrapper */
+                display: inline-block; /* Needed if not using flex on parent */
+                position: relative; /* Needed for absolute positioning of attachment labels if added */
+            }
+            .letter-wrapper svg {
+                display: block; /* Prevent extra space below SVG */
+                width: 100%;
+                height: 100%;
+            }
+            /* Styles for attachment point visualization */
+            .attachment-point {
+                fill: red;
+                stroke: darkred;
+                stroke-width: 0.5;
+            }
+            .attachment-label {
+                font-size: 8px;
+                font-family: sans-serif;
+                fill: black;
+                /* Prevent labels from being selected */
+                user-select: none;
+                pointer-events: none;
+            }
+
+            .placeholder {
+                /* Use CSS variable for size */
+                width: var(--letter-size);
+                height: var(--letter-size);
+                border: 1px dashed red;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: calc(var(--letter-size) * 0.4); /* Scale font size */
+                color: red;
+                background-color: #fee;
+                box-sizing: border-box; /* Include border in size */
+            }
+        </style>
     </head>
-    <body></body>
+    <body>
+        <div class="controls">
+            <h3>Controls</h3>
+            <label>
+                Text to Render:
+                <input type="text" id="text-input" value="L" />
+            </label>
+            <label>
+                Fill Color (options.color):
+                <input type="color" id="fill-color-input" value="#add8e6" />
+                <!-- Light blue -->
+            </label>
+            <label>
+                Limb Thickness (options.lineWidth):
+                <input
+                    type="number"
+                    id="line-width-input"
+                    value="25"
+                    min="1"
+                    max="50"
+                    step="1"
+                />
+            </label>
+            <label>
+                Outline Color (options.strokeColor):
+                <input type="color" id="stroke-color-input" value="#333333" />
+                <!-- Dark grey -->
+            </label>
+            <label>
+                Outline Width (options.strokeWidth):
+                <input
+                    type="number"
+                    id="stroke-width-input"
+                    value="4"
+                    min="0"
+                    max="20"
+                    step="0.5"
+                />
+            </label>
+
+            <hr />
+            <!-- Separator -->
+
+            <label class="checkbox-label">
+                <span>Show Attachment Points:</span>
+                <input type="checkbox" id="show-attachments-checkbox" checked />
+            </label>
+
+            <label>
+                Letter Size:
+                <span class="range-value" id="size-value-display">80px</span>
+                <input
+                    type="range"
+                    id="size-slider"
+                    min="20"
+                    max="300"
+                    value="80"
+                    step="5"
+                />
+            </label>
+        </div>
+
+        <div id="letter-display-area">
+            <!-- Letters will be rendered here -->
+        </div>
+
+        <script type="module" src="/dev/main.ts"></script>
+    </body>
 </html>
