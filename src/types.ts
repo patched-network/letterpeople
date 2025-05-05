@@ -6,9 +6,21 @@ export interface LetterOptions {
   style?: "sans-serif" | "serif";
 }
 
+export interface point {
+  x: number;
+  y: number;
+}
+
 export interface LetterRender {
   svg: SVGElement;
   attachments: {
-    [key: string]: { x: number; y: number };
+    leftEye: point;
+    rightEye: point;
+    leftArm: point;
+    rightArm: point;
+    leftLeg: point;
+    rightLeg: point;
+    mouth: point;
+    hat: point;
   };
 }

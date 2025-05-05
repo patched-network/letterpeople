@@ -43,3 +43,5 @@ export function createLetter(
     return null;
   }
 }
+
+export * from "./types";
