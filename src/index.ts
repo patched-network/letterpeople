@@ -42,7 +42,7 @@ const letterRenderers: {
 
 // Default parameters for the mouth if not provided (still relevant for initial creation)
 const DEFAULT_MOUTH_PARAMS: MouthParameters = {
-  openness: 0.1,
+  openness: 0.2,
   mood: 0.7,
 };
 
@@ -51,7 +51,7 @@ export function createLetter(
   target: Element,
   options?: LetterOptions,
 ): LetterInstance | null {
-  const renderer = letterRenderers[letter.toUpperCase()];
+  const renderer = letterRenderers[letter];
   if (!renderer) {
     console.warn(`Renderer for letter "${letter}" not found.`);
     return null;
