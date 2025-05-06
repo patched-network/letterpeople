@@ -62,6 +62,9 @@ export function createEye(
   const group = document.createElementNS(svgNS, "g");
   group.setAttribute("class", "letter-attachment letter-eye"); // Add classes for potential styling
 
+  // stransformations relative to eye's center
+  group.style.transformOrigin = `${x}px ${y}px`;
+
   // Create the sclera (white part)
   const sclera = document.createElementNS(svgNS, "circle");
   sclera.setAttribute("cx", String(x));
@@ -128,6 +131,7 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
     this._currentAnimation = animate(this.element, {
       scaleY: [originalScaleY, 0.05],
       duration: duration,
+
       ease: ease, // Use the same ease for closing part
       delay: 50,
     });
@@ -191,13 +195,6 @@ class EyesGroupControllerImpl implements EyesAttachment {
   stopAnimations(): void {
     this.left.stopAnimations?.();
     this.right.stopAnimations?.();
-  }
-
-  async blinkBoth(options?: AnimationParams): Promise<void> {
-    // If EyeAttachment has a blink method:
-    const leftBlink = (this.left as EyeControllerImpl).blink?.(options);
-    const rightBlink = (this.right as EyeControllerImpl).blink?.(options);
-    await Promise.all([leftBlink, rightBlink].filter((p) => p));
   }
 }
 
