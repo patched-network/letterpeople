@@ -1,4 +1,5 @@
 import type { Point } from "../types"; // For attachmentCoord
+import { BaseController } from "./BaseController";
 import type { MouthAttachment } from "./types";
 import { animate, AnimationParams, JSAnimation, utils } from "animejs";
 
@@ -173,14 +174,11 @@ export function createMorphingMouth(
   return group;
 }
 
-class MouthControllerImpl implements MouthAttachment {
+class MouthControllerImpl extends BaseController implements MouthAttachment {
   readonly type = "mouth";
-  public element: SVGGElement;
   private _currentParams: MouthParameters;
   private _appearanceOptions?: MouthAppearanceOptions;
   private _attachmentCoord: Point;
-  private _isVisibleState: boolean = true;
-  private _currentAnimation: JSAnimation | null = null;
 
   constructor(
     svgGroup: SVGGElement,
@@ -188,7 +186,8 @@ class MouthControllerImpl implements MouthAttachment {
     appearanceOptions: MouthAppearanceOptions | undefined,
     attachmentCoord: Point,
   ) {
-    this.element = svgGroup;
+    super(svgGroup, "mouth");
+
     this._currentParams = { ...initialParams };
     this._appearanceOptions = appearanceOptions;
     this._attachmentCoord = attachmentCoord;
@@ -272,54 +271,6 @@ class MouthControllerImpl implements MouthAttachment {
     return { ...this._currentParams };
   }
 
-  async show(options?: AnimationParams): Promise<void> {
-    this.stopAnimations(); // Now non-optional in this class
-    this._isVisibleState = true;
-    this.element.style.display = "";
-
-    if (options?.duration) {
-      if (this.element.style.opacity === "0") {
-        // No change needed here, anime will animate from 0
-      } else if (!this.element.style.opacity) {
-        this.element.style.opacity = "0";
-      }
-
-      // Corrected animate call
-      this._currentAnimation = animate(this.element, {});
-      return this._currentAnimation.then();
-    } else {
-      this.element.style.opacity = "1";
-      return Promise.resolve();
-    }
-  }
-
-  async hide(options?: AnimationParams): Promise<void> {
-    this.stopAnimations();
-    this._isVisibleState = false;
-
-    if (options?.duration) {
-      if (!this.element.style.opacity) {
-        this.element.style.opacity = "1";
-      }
-
-      // Corrected animate call
-      this._currentAnimation = animate(this.element, {
-        opacity: 0,
-        duration: 250,
-        ease: "inOut",
-      });
-      return this._currentAnimation.then();
-    } else {
-      this.element.style.opacity = "0";
-      this.element.style.display = "none";
-      return Promise.resolve();
-    }
-  }
-
-  isVisible(): boolean {
-    return this._isVisibleState && this.element.style.display !== "none";
-  }
-
   toString(): string {
     return `MouthAttachment: visible=${this.isVisible()}, params=${JSON.stringify(this._currentParams)}`;
   }
@@ -346,19 +297,6 @@ class MouthControllerImpl implements MouthAttachment {
       duration: duration,
       delay: 0,
     });
-  }
-
-  // Removed '?' to make it a non-optional method in this class
-  isAnimating(): boolean {
-    return this._currentAnimation !== null && !this._currentAnimation.completed;
-  }
-
-  // Removed '?' to make it a non-optional method in this class
-  stopAnimations(): void {
-    if (this._currentAnimation) {
-      this._currentAnimation.cancel();
-      this._currentAnimation = null;
-    }
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { animate, AnimationParams, JSAnimation } from "animejs";
 import type { EyeAttachment, EyesAttachment } from "./types";
-import type { Point } from "../types"; // Assuming Point is {x, y}
+import { BaseController } from "./BaseController";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -89,15 +89,13 @@ export function createEye(
 }
 
 // --- Eye Controller Implementation ---
-class EyeControllerImpl implements EyeAttachment {
+class EyeControllerImpl extends BaseController implements EyeAttachment {
   readonly type = "eye";
-  public element: SVGGElement;
   private _options: EyeOptions; // Store options for potential future use
-  private _isVisibleState: boolean = true;
-  private _currentAnimation: JSAnimation | null = null;
 
   constructor(svgGroup: SVGGElement, options?: EyeOptions) {
-    this.element = svgGroup;
+    super(svgGroup, "eye");
+
     this._options = {
       // Store a merged copy of defaults and provided options
       size: options?.size ?? DEFAULT_EYE_SIZE,
@@ -110,67 +108,8 @@ class EyeControllerImpl implements EyeAttachment {
     };
   }
 
-  async show(options?: AnimationParams): Promise<void> {
-    this.stopAnimations(); // Now non-optional in this class
-    this._isVisibleState = true;
-    this.element.style.display = "";
-
-    if (options?.duration) {
-      if (this.element.style.opacity === "0") {
-        // No change needed here, anime will animate from 0
-      } else if (!this.element.style.opacity) {
-        this.element.style.opacity = "0";
-      }
-
-      // Corrected animate call
-      this._currentAnimation = animate(this.element, {});
-      return this._currentAnimation.then();
-    } else {
-      this.element.style.opacity = "1";
-      return Promise.resolve();
-    }
-  }
-
-  async hide(options?: AnimationParams): Promise<void> {
-    this.stopAnimations();
-    this._isVisibleState = false;
-
-    if (options?.duration) {
-      if (!this.element.style.opacity) {
-        this.element.style.opacity = "1";
-      }
-
-      // Corrected animate call
-      this._currentAnimation = animate(this.element, {
-        opacity: 0,
-        duration: 250,
-        ease: "inOut",
-      });
-      return this._currentAnimation.then();
-    } else {
-      this.element.style.opacity = "0";
-      this.element.style.display = "none";
-      return Promise.resolve();
-    }
-  }
-
-  isVisible(): boolean {
-    return this._isVisibleState && this.element.style.display !== "none";
-  }
-
   toString(): string {
     return `EyeAttachment: visible=${this.isVisible()}`;
-  }
-
-  isAnimating(): boolean {
-    return this._currentAnimation !== null && !this._currentAnimation.completed;
-  }
-
-  stopAnimations(): void {
-    if (this._currentAnimation) {
-      this._currentAnimation.cancel();
-      this._currentAnimation = null;
-    }
   }
 
   // Example of a specific eye animation (can be expanded)
