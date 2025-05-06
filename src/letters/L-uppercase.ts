@@ -1,11 +1,15 @@
 // src/letters/L-uppercase.ts
-import type { LetterOptions, InternalLetterRenderResult, Point } from "../types";
+import type {
+  LetterOptions,
+  InternalLetterRenderResult,
+  Point,
+} from "../types";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 100;
 const VIEWBOX_HEIGHT = 100;
 const DEFAULT_LIMB_THICKNESS = 20; // How thick the vertical/horizontal parts are
-const DEFAULT_OUTLINE_WIDTH = 2;   // Default width for the border/stroke
+const DEFAULT_OUTLINE_WIDTH = 2; // Default width for the border/stroke
 
 /**
  * @internal
@@ -15,7 +19,9 @@ const DEFAULT_OUTLINE_WIDTH = 2;   // Default width for the border/stroke
  * @param options - Configuration options for the letter's appearance.
  * @returns An object containing the base SVG element and attachment coordinates.
  */
-function renderL_uppercase(options?: LetterOptions): InternalLetterRenderResult {
+function renderL_uppercase(
+  options?: LetterOptions,
+): InternalLetterRenderResult {
   // --- SVG Setup ---
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -29,7 +35,7 @@ function renderL_uppercase(options?: LetterOptions): InternalLetterRenderResult 
   const limbThickness = options?.lineWidth ?? DEFAULT_LIMB_THICKNESS;
   const fillColor = options?.color ?? "currentColor";
   const outlineColor = options?.strokeColor ?? "black";
-  const outlineWidth = options?.strokeWidth ?? DEFAULT_OUTLINE_WIDTH;
+  const outlineWidth = options?.borderWidth ?? DEFAULT_OUTLINE_WIDTH;
 
   // --- Path Definition (Filled Shape Outline) ---
   const path = document.createElementNS(svgNS, "path");
@@ -60,20 +66,20 @@ function renderL_uppercase(options?: LetterOptions): InternalLetterRenderResult 
   // Ensure the keys match the expected structure if defined strictly in LetterInstance later
   const attachments: { [key: string]: Point } = {
     // Eyes and mouth on the upper part of the vertical stem
-    leftEye:  { x: T * 0.3, y: T * 0.8 },
+    leftEye: { x: T * 0.3, y: T * 0.8 },
     rightEye: { x: T * 0.7, y: T * 0.8 },
-    mouth:    { x: T / 2,   y: T * 1.3 },
+    mouth: { x: T / 2, y: T * 1.3 },
 
     // Hat sits centered on top
-    hat:      { x: T / 2,   y: outlineWidth / 2 }, // Center on the outline thickness
+    hat: { x: T / 2, y: outlineWidth / 2 }, // Center on the outline thickness
 
     // Arms roughly mid-height
-    leftArm:  { x: outlineWidth / 2, y: H * 0.6 }, // Center on left outline
-    rightArm: { x: T - (outlineWidth / 2), y: H * 0.6 }, // Center on right edge of vertical stem outline
+    leftArm: { x: outlineWidth / 2, y: H * 0.6 }, // Center on left outline
+    rightArm: { x: T - outlineWidth / 2, y: H * 0.6 }, // Center on right edge of vertical stem outline
 
     // Legs at the bottom centers of the stems
-    leftLeg:  { x: T / 2,             y: H - (outlineWidth / 2) }, // Center on bottom outline
-    rightLeg: { x: T + (W - T) / 2,   y: H - (outlineWidth / 2) }, // Center on bottom outline
+    leftLeg: { x: T / 2, y: H - outlineWidth / 2 }, // Center on bottom outline
+    rightLeg: { x: T + (W - T) / 2, y: H - outlineWidth / 2 }, // Center on bottom outline
   };
 
   // Return the result conforming to InternalLetterRenderResult

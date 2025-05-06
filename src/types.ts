@@ -18,7 +18,7 @@ export interface LetterOptions {
   // Base letter appearance
   color?: string;
   strokeColor?: string;
-  strokeWidth?: number;
+  borderWidth?: number;
   lineWidth?: number;
   style?: "sans-serif" | "serif";
 

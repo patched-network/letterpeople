@@ -1,5 +1,6 @@
 // Import LetterInstance and LetterOptions, remove unused LetterRender
-import { createLetter, LetterOptions, LetterInstance } from "../src/index";
+import { createLetter } from "../src/index";
+import { LetterOptions, LetterInstance } from "../src/types";
 
 console.log("Dev environment running");
 
@@ -56,7 +57,7 @@ let currentOptions: LetterOptions = {
   color: "#add8e6",
   lineWidth: 25,
   strokeColor: "#333333",
-  strokeWidth: 4,
+  borderWidth: 4,
   // Initialize mouth params from default slider values
   mouthParams: {
     openness: 0.1,
@@ -214,7 +215,7 @@ function setupEventListeners() {
     renderLetters();
   });
   strokeWidthInput.addEventListener("input", (event) => {
-    currentOptions.strokeWidth = parseFloat(
+    currentOptions.borderWidth = parseFloat(
       (event.target as HTMLInputElement).value,
     );
     renderLetters();
@@ -298,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
       color: fillColorInput.value,
       lineWidth: parseInt(lineWidthInput.value, 10),
       strokeColor: strokeColorInput.value,
-      strokeWidth: parseFloat(strokeWidthInput.value),
+      borderWidth: parseFloat(strokeWidthInput.value),
       mouthParams: {
         // Initialize from sliders
         openness: parseFloat(mouthOpennessSlider.value),
@@ -312,8 +313,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set initial display values for sliders
     sizeValueDisplay.textContent = `${letterSize}px`;
     mouthOpennessValue.textContent =
-      currentOptions.mouthParams!.openness.toFixed(2);
-    mouthMoodValue.textContent = currentOptions.mouthParams!.mood.toFixed(2);
+      currentOptions.mouthParams!.openness!.toFixed(2);
+    mouthMoodValue.textContent = currentOptions.mouthParams!.mood!.toFixed(2);
 
     setupEventListeners();
     renderLetters(); // Initial render
