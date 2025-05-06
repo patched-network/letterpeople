@@ -1,8 +1,6 @@
-// src/attachments/mouth.ts
-
 import type { Point } from "../types"; // For attachmentCoord
-import type { MouthAttachment, AttachmentAnimationOptions } from "./types"; // Import from the new attachment types file
-import { animate, JSAnimation } from "animejs";
+import type { MouthAttachment } from "./types";
+import { animate, AnimationParams, JSAnimation, utils } from "animejs";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -153,7 +151,7 @@ export function createMorphingMouth(
   group.setAttribute(
     "class",
     "letter-attachment letter-mouth letter-mouth-bezier",
-  ); // New class
+  );
 
   const path = document.createElementNS(svgNS, "path");
   path.setAttribute("d", d);
@@ -175,15 +173,14 @@ export function createMorphingMouth(
   return group;
 }
 
-// --- Mouth Controller Implementation ---
 class MouthControllerImpl implements MouthAttachment {
   readonly type = "mouth";
-  public element: SVGGElement; // The <g> element created by createMorphingMouth
+  public element: SVGGElement;
   private _currentParams: MouthParameters;
   private _appearanceOptions?: MouthAppearanceOptions;
-  private _attachmentCoord: Point; // Original attachment point for re-creation/updates
+  private _attachmentCoord: Point;
   private _isVisibleState: boolean = true;
-  private _currentAnimation: AnimeInstance | null = null;
+  private _currentAnimation: JSAnimation | null = null;
 
   constructor(
     svgGroup: SVGGElement,
@@ -192,44 +189,43 @@ class MouthControllerImpl implements MouthAttachment {
     attachmentCoord: Point,
   ) {
     this.element = svgGroup;
-    this._currentParams = { ...initialParams }; // Store a copy
+    this._currentParams = { ...initialParams };
     this._appearanceOptions = appearanceOptions;
     this._attachmentCoord = attachmentCoord;
-    // Assume visible by default if a controller is created for an existing element
   }
 
   async updateShape(
     params: Partial<MouthParameters>,
-    animOptions?: AttachmentAnimationOptions,
+    animOptions?: AnimationParams,
   ): Promise<void> {
-    this.stopAnimations(); // Stop any ongoing shape animation
+    this.stopAnimations(); // Now non-optional in this class
 
     const oldParams = { ...this._currentParams };
     const newParams: MouthParameters = { ...this._currentParams, ...params };
 
-    // Update internal state immediately for getCurrentShapeParams
     this._currentParams = { ...newParams };
 
-    if (animOptions && animOptions.duration && animOptions.duration > 0) {
+    if (animOptions && animOptions.duration) {
       const animationDefaults = {
         duration: 300,
-        easing: "easeInOutQuad",
-        ...animOptions, // User options override defaults
+        ease: "inOutQuad",
+        delay: 0,
+        ...animOptions,
       };
 
-      const tweenState = { ...oldParams }; // Start tween from old state
+      const tweenState = { ...oldParams };
 
-      this._currentAnimation = animate({
-        targets: tweenState,
-        ...newParams, // Tween towards all keys in newParams
+      // Corrected animate call
+      this._currentAnimation = animate(tweenState, {
+        ...newParams, // Target values for properties in tweenState
         duration: animationDefaults.duration,
-        easing: animationDefaults.easing,
+        ease: animationDefaults.ease,
         delay: animationDefaults.delay,
-        update: () => {
+        onUpdate: () => {
           const newPathD = createMorphingMouth(
             this._attachmentCoord.x,
             this._attachmentCoord.y,
-            tweenState as MouthParameters, // Use the live tweened parameters
+            tweenState as MouthParameters,
             this._appearanceOptions,
           )
             .querySelector("path")
@@ -240,13 +236,12 @@ class MouthControllerImpl implements MouthAttachment {
             currentPathEl.setAttribute("d", newPathD);
           }
         },
-        complete: () => {
+        onComplete: () => {
           this._currentAnimation = null;
-          // Ensure final state is perfectly set
           const finalPathD = createMorphingMouth(
             this._attachmentCoord.x,
             this._attachmentCoord.y,
-            this._currentParams, // Use the definitive _currentParams
+            this._currentParams,
             this._appearanceOptions,
           )
             .querySelector("path")
@@ -258,18 +253,15 @@ class MouthControllerImpl implements MouthAttachment {
         },
         autoplay: true,
       });
-      return this._currentAnimation.finished;
+      return this._currentAnimation.then();
     } else {
-      // No animation, re-render the path directly
       const newMouthGroupContent = createMorphingMouth(
         this._attachmentCoord.x,
         this._attachmentCoord.y,
         this._currentParams,
         this._appearanceOptions,
       );
-      // Replace the content of the existing group, not the group itself
       this.element.innerHTML = newMouthGroupContent.innerHTML;
-      // Ensure transform origin is preserved/re-applied if createMorphingMouth sets it
       this.element.style.transformOrigin =
         newMouthGroupContent.style.transformOrigin;
       return Promise.resolve();
@@ -277,49 +269,46 @@ class MouthControllerImpl implements MouthAttachment {
   }
 
   getCurrentShapeParams(): MouthParameters {
-    return { ...this._currentParams }; // Return a copy
+    return { ...this._currentParams };
   }
 
-  async show(options?: AttachmentAnimationOptions): Promise<void> {
-    this.stopAnimations(); // Stop other animations if any
+  async show(options?: AnimationParams): Promise<void> {
+    this.stopAnimations(); // Now non-optional in this class
     this._isVisibleState = true;
-    this.element.style.display = ""; // Or use a class for visibility
+    this.element.style.display = "";
 
-    if (options?.duration && options.duration > 0) {
-      // this._currentAnimation = anime({
-      //   targets: this.element,
-      //   opacity: [this.element.style.opacity || "0", 1], // Animate from current opacity
-      //   duration: options.duration,
-      //   easing: options.easing ?? "easeOutQuad",
-      //   delay: options.delay,
-      //   complete: () => {
-      //     this._currentAnimation = null;
-      //   },
-      // });
-      return this._currentAnimation.finished;
+    if (options?.duration) {
+      if (this.element.style.opacity === "0") {
+        // No change needed here, anime will animate from 0
+      } else if (!this.element.style.opacity) {
+        this.element.style.opacity = "0";
+      }
+
+      // Corrected animate call
+      this._currentAnimation = animate(this.element, {});
+      return this._currentAnimation.then();
     } else {
       this.element.style.opacity = "1";
       return Promise.resolve();
     }
   }
 
-  async hide(options?: AttachmentAnimationOptions): Promise<void> {
+  async hide(options?: AnimationParams): Promise<void> {
     this.stopAnimations();
     this._isVisibleState = false;
 
-    if (options?.duration && options.duration > 0) {
-      // this._currentAnimation = anime({
-      //   targets: this.element,
-      //   opacity: [this.element.style.opacity || "1", 0], // Animate from current opacity
-      //   duration: options.duration,
-      //   easing: options.easing ?? "easeInQuad",
-      //   delay: options.delay,
-      //   complete: () => {
-      //     this.element.style.display = "none"; // Hide after animation
-      //     this._currentAnimation = null;
-      //   },
-      // });
-      return this._currentAnimation.finished;
+    if (options?.duration) {
+      if (!this.element.style.opacity) {
+        this.element.style.opacity = "1";
+      }
+
+      // Corrected animate call
+      this._currentAnimation = animate(this.element, {
+        opacity: 0,
+        duration: 250,
+        ease: "inOut",
+      });
+      return this._currentAnimation.then();
     } else {
       this.element.style.opacity = "0";
       this.element.style.display = "none";
@@ -328,7 +317,6 @@ class MouthControllerImpl implements MouthAttachment {
   }
 
   isVisible(): boolean {
-    // Check both internal state and actual display style
     return this._isVisibleState && this.element.style.display !== "none";
   }
 
@@ -336,48 +324,44 @@ class MouthControllerImpl implements MouthAttachment {
     return `MouthAttachment: visible=${this.isVisible()}, params=${JSON.stringify(this._currentParams)}`;
   }
 
-  // Example specific animation
-  async animateSpeak(speakOptions?: AttachmentAnimationOptions): Promise<void> {
-    this.stopAnimations();
+  async animateSpeak(speakOptions?: AnimationParams): Promise<void> {
+    this.stopAnimations(); // Now non-optional in this class
     const originalParams = this.getCurrentShapeParams();
     const openParams = {
       ...originalParams,
       openness: clamp(originalParams.openness + 0.4, 0, 1),
-    }; // Open a bit more
-    const duration = speakOptions?.duration ?? 200; // Total duration for speak pulse
+    };
+    const duration = speakOptions?.duration ?? 200;
+    const openEase = speakOptions?.ease ?? "outQuad";
+    const closeEase = speakOptions?.ease ?? "inQuad";
 
-    // Animate to open
     await this.updateShape(openParams, {
       ...speakOptions,
-      duration: duration * 0.4,
+      ease: openEase,
+      duration: duration,
     });
-    // Animate back to original
     await this.updateShape(originalParams, {
       ...speakOptions,
-      duration: duration * 0.6,
+      ease: closeEase,
+      duration: duration,
+      delay: 0,
     });
   }
 
-  isAnimating?(): boolean {
+  // Removed '?' to make it a non-optional method in this class
+  isAnimating(): boolean {
     return this._currentAnimation !== null && !this._currentAnimation.completed;
   }
 
-  stopAnimations?(): void {
+  // Removed '?' to make it a non-optional method in this class
+  stopAnimations(): void {
     if (this._currentAnimation) {
-      // anime.remove(this.element); // Remove animations targeted at the element (for show/hide)
-      // For parameter tweens, we need to stop the specific anime instance
-      this._currentAnimation.pause(); // Pause it
-      // It's tricky to "remove" a JS-driven animation like the parameter tween
-      // without more complex management. Pausing and nulling is a start.
+      this._currentAnimation.cancel();
       this._currentAnimation = null;
     }
   }
 }
 
-/**
- * Factory function to create a MouthController instance.
- * This is what will be imported by `index.ts`.
- */
 export function createMorphingMouthController(
   svgGroup: SVGGElement,
   initialParams: MouthParameters,

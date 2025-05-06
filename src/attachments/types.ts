@@ -2,21 +2,9 @@
  * @file Defines common types for LetterPeople attachments.
  */
 
-import type { AnimateParams } from "animejs";
+import type { AnimationParams } from "animejs";
 
 export type attachmentTypes = "eyes-group" | "eye" | "mouth";
-
-/**
- * Common animation options for attachment methods.
- * Extends AnimeParams but allows for simpler overrides.
- */
-export interface AttachmentAnimationOptions
-  extends Omit<AnimeParams, "targets"> {
-  duration?: number;
-  easing?: string;
-  delay?: number;
-  // Add any other common animation parameters you foresee needing
-}
 
 /**
  * Represents a generic, controllable attachment part of a LetterInstance.
@@ -33,21 +21,21 @@ export interface BaseAttachment {
   /**
    * A read-only string identifying the type of attachment (e.g., 'eye', 'mouth', 'eyebrow').
    */
-  readonly type: attachmentType;
+  readonly type: attachmentTypes;
 
   /**
    * Makes the attachment visible, potentially with an animation.
    * @param options Optional animation parameters for the transition.
    * @returns A Promise that resolves when the show animation completes (or immediately if no animation).
    */
-  show(options?: AttachmentAnimationOptions): Promise<void>;
+  show(options?: AnimationParams): Promise<void>;
 
   /**
    * Makes the attachment invisible, potentially with an animation.
    * @param options Optional animation parameters for the transition.
    * @returns A Promise that resolves when the hide animation completes (or immediately if no animation).
    */
-  hide(options?: AttachmentAnimationOptions): Promise<void>;
+  hide(options?: AnimationParams): Promise<void>;
 
   /**
    * Checks if the attachment is currently considered visible (or transitioning to visible).
@@ -89,14 +77,14 @@ export interface MouthAttachment extends BaseAttachment {
   // Method to update the mouth shape, potentially animated
   updateShape(
     params: Partial<MouthParameters>,
-    options?: AttachmentAnimationOptions,
+    options?: AnimationParams,
   ): Promise<void>;
 
   // Method to get current shape parameters
   getCurrentShapeParams(): MouthParameters;
 
   // Specific animation like speaking
-  animateSpeak?(speakOptions?: AttachmentAnimationOptions): Promise<void>;
+  animateSpeak?(speakOptions?: AnimationParams): Promise<void>;
 }
 
 export interface EyesAttachment {

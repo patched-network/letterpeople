@@ -81,7 +81,7 @@ export function createLetter(
     svg.appendChild(mouthSvgElement); // Add the mouth's SVG to the main letter SVG
 
     // Now, create the controller for this mouth element
-    mouthController = createMouthController(
+    mouthController = createMorphingMouthController(
       mouthSvgElement,
       initialMouthParams,
       options?.mouthAppearance,

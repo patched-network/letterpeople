@@ -29,8 +29,8 @@ export interface LetterOptions {
   color?: string;
   lineWidth?: number;
   // Renamed strokeColor and strokeWidth for consistency with other parts of the project
-  strokeColor?: string; // Was borderColor
-  strokeWidth?: number; // Was borderWidth
+  borderColor?: string;
+  borderWidth?: number;
   style?: "sans-serif" | "serif";
 
   // --- Attachment Options ---
@@ -68,7 +68,7 @@ export interface LetterInstance {
    * Map of logical attachment point names to their coordinates relative to the SVG origin.
    * Still useful for initial placement and debugging.
    */
-  readonly attachmentCoords: { [key: string]: Point };
+  readonly attachmentCoords: AttachmentList;
 
   /** The letter character this instance represents (e.g., 'L') */
   readonly character: string;

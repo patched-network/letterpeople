@@ -1,5 +1,9 @@
 // src/attachments/eye.ts
 
+import { animate, AnimationParams, JSAnimation } from "animejs";
+import type { EyeAttachment, EyesAttachment } from "./types";
+import type { Point } from "../types"; // Assuming Point is {x, y}
+
 const svgNS = "http://www.w3.org/2000/svg";
 
 /**
@@ -18,6 +22,7 @@ export interface EyeOptions {
   strokeColor?: string;
   /** Optional outline width for the sclera. Defaults to 0.5. */
   strokeWidth?: number;
+  // Future: pupilPosition?: Point; // For controlling where the pupil looks
 }
 
 // --- Default values ---
@@ -81,4 +86,196 @@ export function createEye(
   group.appendChild(pupil);
 
   return group;
+}
+
+// --- Eye Controller Implementation ---
+class EyeControllerImpl implements EyeAttachment {
+  readonly type = "eye";
+  public element: SVGGElement;
+  private _options: EyeOptions; // Store options for potential future use
+  private _isVisibleState: boolean = true;
+  private _currentAnimation: JSAnimation | null = null;
+
+  constructor(svgGroup: SVGGElement, options?: EyeOptions) {
+    this.element = svgGroup;
+    this._options = {
+      // Store a merged copy of defaults and provided options
+      size: options?.size ?? DEFAULT_EYE_SIZE,
+      fillColor: options?.fillColor ?? DEFAULT_FILL_COLOR,
+      pupilColor: options?.pupilColor ?? DEFAULT_PUPIL_COLOR,
+      pupilSizeRatio: options?.pupilSizeRatio ?? DEFAULT_PUPIL_RATIO,
+      strokeColor: options?.strokeColor ?? DEFAULT_STROKE_COLOR,
+      strokeWidth: options?.strokeWidth ?? DEFAULT_STROKE_WIDTH,
+      ...options,
+    };
+  }
+
+  async show(options?: AnimationParams): Promise<void> {
+    this.stopAnimations(); // Now non-optional in this class
+    this._isVisibleState = true;
+    this.element.style.display = "";
+
+    if (options?.duration) {
+      if (this.element.style.opacity === "0") {
+        // No change needed here, anime will animate from 0
+      } else if (!this.element.style.opacity) {
+        this.element.style.opacity = "0";
+      }
+
+      // Corrected animate call
+      this._currentAnimation = animate(this.element, {});
+      return this._currentAnimation.then();
+    } else {
+      this.element.style.opacity = "1";
+      return Promise.resolve();
+    }
+  }
+
+  async hide(options?: AnimationParams): Promise<void> {
+    this.stopAnimations();
+    this._isVisibleState = false;
+
+    if (options?.duration) {
+      if (!this.element.style.opacity) {
+        this.element.style.opacity = "1";
+      }
+
+      // Corrected animate call
+      this._currentAnimation = animate(this.element, {
+        opacity: 0,
+        duration: 250,
+        ease: "inOut",
+      });
+      return this._currentAnimation.then();
+    } else {
+      this.element.style.opacity = "0";
+      this.element.style.display = "none";
+      return Promise.resolve();
+    }
+  }
+
+  isVisible(): boolean {
+    return this._isVisibleState && this.element.style.display !== "none";
+  }
+
+  toString(): string {
+    return `EyeAttachment: visible=${this.isVisible()}`;
+  }
+
+  isAnimating(): boolean {
+    return this._currentAnimation !== null && !this._currentAnimation.completed;
+  }
+
+  stopAnimations(): void {
+    if (this._currentAnimation) {
+      this._currentAnimation.cancel();
+      this._currentAnimation = null;
+    }
+  }
+
+  // Example of a specific eye animation (can be expanded)
+  async blink(options?: AnimationParams): Promise<void> {
+    this.stopAnimations();
+    const duration = options?.duration ?? 150; // Fast blink
+    const ease = options?.ease ?? "inOutSine";
+
+    // Simple blink: quickly scale Y to 0 and back
+    // More complex blinks could involve eyelid paths
+    const originalScaleY = this.element.style.transform.includes("scaleY")
+      ? parseFloat(this.element.style.transform.split("scaleY(")[1])
+      : 1;
+
+    // Animate closing
+    this._currentAnimation = animate(this.element, {
+      scaleY: [originalScaleY, 0.05],
+      duration: duration,
+      ease: ease, // Use the same ease for closing part
+      delay: 50,
+    });
+    await this._currentAnimation.then();
+
+    if (!this._currentAnimation) return; // Animation might have been cancelled
+
+    // Animate opening
+    this._currentAnimation = animate(this.element, {
+      scaleY: [0.05, originalScaleY],
+      duration: duration,
+      ease: ease, // Use the same ease for opening part
+    });
+    await this._currentAnimation.then();
+    this._currentAnimation = null;
+  }
+}
+
+// --- Eyes Group Controller Implementation ---
+class EyesGroupControllerImpl implements EyesAttachment {
+  public readonly left: EyeAttachment;
+  public readonly right: EyeAttachment;
+
+  constructor(leftEye: EyeAttachment, rightEye: EyeAttachment) {
+    this.left = leftEye;
+    this.right = rightEye;
+  }
+
+  async show(options?: AnimationParams): Promise<void> {
+    await Promise.all([this.left.show(options), this.right.show(options)]);
+  }
+
+  async hide(options?: AnimationParams): Promise<void> {
+    await Promise.all([this.left.hide(options), this.right.hide(options)]);
+  }
+
+  isVisible(): boolean {
+    // Considered visible if both eyes are visible
+    return this.left.isVisible() && this.right.isVisible();
+  }
+
+  toString(): string {
+    return `EyesGroup: Left Eye (${this.left.toString()}), Right Eye (${this.right.toString()})`;
+  }
+
+  isAnimating(): boolean {
+    // Considered animating if either eye is animating
+    const leftAnimating = this.left.isAnimating
+      ? this.left.isAnimating()
+      : false;
+    const rightAnimating = this.right.isAnimating
+      ? this.right.isAnimating()
+      : false;
+    return leftAnimating || rightAnimating;
+  }
+
+  stopAnimations(): void {
+    this.left.stopAnimations?.();
+    this.right.stopAnimations?.();
+  }
+
+  async blinkBoth(options?: AnimationParams): Promise<void> {
+    // If EyeAttachment has a blink method:
+    const leftBlink = (this.left as EyeControllerImpl).blink?.(options);
+    const rightBlink = (this.right as EyeControllerImpl).blink?.(options);
+    await Promise.all([leftBlink, rightBlink].filter((p) => p));
+  }
+}
+
+// --- Factory Functions ---
+
+/**
+ * Creates an EyeController instance.
+ */
+export function createEyeController(
+  svgGroup: SVGGElement,
+  options?: EyeOptions,
+): EyeAttachment {
+  return new EyeControllerImpl(svgGroup, options);
+}
+
+/**
+ * Creates an EyesGroupController instance.
+ */
+export function createEyesGroupController(
+  leftEye: EyeAttachment,
+  rightEye: EyeAttachment,
+): EyesAttachment {
+  return new EyesGroupControllerImpl(leftEye, rightEye);
 }
