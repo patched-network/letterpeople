@@ -113,12 +113,12 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
   }
 
   // Example of a specific eye animation (can be expanded)
-  async blink(options?: AnimationParams): Promise<void> {
+  async wink(options?: AnimationParams): Promise<void> {
     this.stopAnimations();
     const duration = options?.duration ?? 150; // Fast blink
     const ease = options?.ease ?? "inOutSine";
 
-    // Simple blink: quickly scale Y to 0 and back
+    // Simple wink: quickly scale Y to 0 and back
     // More complex blinks could involve eyelid paths
     const originalScaleY = this.element.style.transform.includes("scaleY")
       ? parseFloat(this.element.style.transform.split("scaleY(")[1])
@@ -162,6 +162,10 @@ class EyesGroupControllerImpl implements EyesAttachment {
 
   async hide(options?: AnimationParams): Promise<void> {
     await Promise.all([this.left.hide(options), this.right.hide(options)]);
+  }
+
+  async blink(options?: AnimationParams): Promise<void> {
+    await Promise.all([this.left.wink(options), this.right.wink(options)]);
   }
 
   isVisible(): boolean {

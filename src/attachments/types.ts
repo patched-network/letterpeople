@@ -93,8 +93,11 @@ export interface EyesAttachment {
   right: EyeAttachment;
 
   // and helper fcns that apply actions to both eyes - eg, blink, scowl, etc
+  blink(blinkOptions?: AnimationParams): Promise<void>;
 }
 
 export interface EyeAttachment extends BaseAttachment {
   readonly type: "eye";
+
+  wink(blinkOptions?: AnimationParams): Promise<void>;
 }
