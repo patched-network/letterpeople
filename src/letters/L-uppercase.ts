@@ -6,7 +6,7 @@ import type {
 } from "../types";
 
 // Define constants for our coordinate space
-const VIEWBOX_WIDTH = 100;
+const VIEWBOX_WIDTH = 65;
 const VIEWBOX_HEIGHT = 100;
 const DEFAULT_LIMB_THICKNESS = 20; // How thick the vertical/horizontal parts are
 const DEFAULT_OUTLINE_WIDTH = 2; // Default width for the border/stroke
