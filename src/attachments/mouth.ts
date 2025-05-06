@@ -28,7 +28,7 @@ export interface MouthParameters {
   /**
    * Controls the curvature from frown to smile, most prominent when openness is low.
    * 0: Maximum frown.
-   * 0.5: Neutral horizontal line (when openness is 0).
+   * 0.5: Neutral horizontal line/ellipse.
    * 1: Maximum smile.
    * Clamped between 0 and 1.
    */
@@ -56,14 +56,14 @@ const DEFAULT_MOUTH_WIDTH = 20;
 const DEFAULT_FILL_COLOR = "black";
 const DEFAULT_STROKE_COLOR = "none";
 const DEFAULT_STROKE_WIDTH = 1;
-const DEFAULT_MAX_MOOD_RATIO = 0.6; // How much mood affects curvature at openness=0
+const DEFAULT_MAX_MOOD_RATIO = 0.6;
 
 /**
  * Creates SVG elements representing a morphable mouth shape.
  * The shape transitions between a curve (smile/frown) and a circle based on parameters.
  *
  * @param x - The desired center X coordinate for the mouth.
- * @param y - The desired center Y coordinate for the mouth.
+ * @param y - The desired center Y coordinate for the mouth baseline.
  * @param params - Dynamic parameters controlling the mouth shape (openness, mood).
  * @param options - Optional static configuration for the mouth's appearance.
  * @returns An SVGGElement containing the mouth path.
@@ -86,46 +86,50 @@ export function createMorphingMouth(
   const mood = clamp(params.mood, 0, 1);
 
   // --- Calculate Path Parameters ---
+  const rx = Math.max(0.1, width / 2); // Ensure rx is slightly positive
 
-  const rx = width / 2; // Horizontal radius is fixed by width
+  // Minimum vertical radius (increased slightly to avoid potential zero/degenerate cases)
+  const min_ry = Math.max(
+    0.1,
+    strokeColor !== "none" && strokeWidth > 0 ? strokeWidth / 2 : 0.5,
+  );
 
-  // Minimum vertical radius (to prevent degenerate arcs when openness is 0)
-  // Make it at least half the stroke width if stroke is visible, or a small value otherwise
-  const min_ry =
-    strokeColor !== "none" && strokeWidth > 0 ? strokeWidth / 2 : 0.5;
-
-  // Base vertical radius: interpolates from min_ry to rx based on openness
-  // Ensure base_ry is always positive
+  // Base vertical radius
   const base_ry = Math.max(min_ry, lerp(min_ry, rx, openness));
 
-  // Mood influence: interpolates from -1 (frown) to +1 (smile)
-  const moodFactor = lerp(-1, 1, mood);
+  // Mood influence
+  const moodFactor = lerp(-1, 1, mood); // -1 (frown) to +1 (smile)
 
-  // Calculate the vertical offset caused by mood.
-  // This offset is strongest when openness is 0 and fades to 0 as openness reaches 1.
-  // The maximum offset is determined by maxMoodRatio * rx.
+  // Vertical offset caused by mood
   const moodRyOffset = moodFactor * (rx * maxMoodRatio) * (1 - openness);
 
-  // Calculate final vertical radii for the top and bottom arcs
-  // Ensure they don't collapse below min_ry
+  // Final vertical radii for top and bottom arcs
   const ry_bottom = Math.max(min_ry, base_ry + moodRyOffset);
   const ry_top = Math.max(min_ry, base_ry - moodRyOffset);
 
   // --- Define the Path ---
-  // We use two elliptical arc commands (A) to form the shape.
-  // Format: A rx ry x-axis-rotation large-arc-flag sweep-flag x y
-
   const startX = x - rx;
   const startY = y;
   const endX = x + rx;
   const endY = y;
 
+  // Using flags: Bottom (Small=0, CW=0), Top (Small=0, CCW=1)
+  // Added explicit Z close
   const d = [
-    `M ${startX} ${startY}`, // Move to the leftmost point on the baseline
-    `A ${rx} ${ry_bottom} 0 0 1 ${endX} ${endY}`, // Bottom arc (sweep 1 curves "downward" relative to direction)
-    `A ${rx} ${ry_top} 0 0 0 ${startX} ${startY}`, // Top arc (sweep 0 curves "upward" relative to direction, back to start)
-    // 'Z' // Close path - optional but good practice for filled shapes
+    `M ${startX} ${startY}`,
+    `A ${rx.toFixed(3)} ${ry_bottom.toFixed(3)} 0 0 0 ${endX.toFixed(3)} ${endY.toFixed(3)}`, // Bottom arc
+    `A ${rx.toFixed(3)} ${ry_top.toFixed(3)} 0 0 1 ${startX.toFixed(3)} ${startY.toFixed(3)}`, // Top arc
+    `Z`, // Explicitly close path
   ].join(" ");
+
+  // --- Debug Logging ---
+  if (Math.abs(mood - 0.5) < 0.01 || openness < 0.01 || openness > 0.99) {
+    console.log(
+      `Params: open=${openness.toFixed(2)} mood=${mood.toFixed(2)} | Calc: rx=${rx.toFixed(2)} base_ry=${base_ry.toFixed(2)} moodOffset=${moodRyOffset.toFixed(2)} | Final: ry_bot=${ry_bottom.toFixed(2)} ry_top=${ry_top.toFixed(2)}`,
+    );
+    console.log("Path d:", d);
+  }
+  // --- End Debug ---
 
   // --- Create SVG Elements ---
   const group = document.createElementNS(svgNS, "g");
@@ -141,17 +145,16 @@ export function createMorphingMouth(
   if (strokeColor !== "none" && strokeWidth > 0) {
     path.setAttribute("stroke", strokeColor);
     path.setAttribute("stroke-width", String(strokeWidth));
-    path.setAttribute("stroke-linejoin", "round"); // Optional: smoother corners
-    path.setAttribute("stroke-linecap", "round"); // Optional: smoother line ends if stroke is thick
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("stroke-linecap", "round");
+  } else {
+    // Ensure no stroke is applied if color is 'none'
+    path.removeAttribute("stroke");
+    path.removeAttribute("stroke-width");
   }
 
   group.appendChild(path);
-
-  // Set transform-origin for scaling/rotation animations centered correctly
   group.style.transformOrigin = `${x}px ${y}px`;
 
   return group;
 }
-
-// --- Export the interfaces and the function ---
-// (Interfaces are implicitly exported by being declared with 'export')
