@@ -17,10 +17,9 @@ function clamp(value: number, min: number, max: number): number {
  */
 export interface MouthParameters {
   /**
-   * Controls the transition from a curve to a circle.
+   * Controls the transition from a curve to a circle-like shape.
    * 0: Collapsed to a curve (mood determines smile/frown).
-   * 1: Full circle.
-   * Values between 0 and 1 create intermediate elliptical shapes.
+   * 1: Full circle-like shape.
    * Clamped between 0 and 1.
    */
   openness: number; // 0-1
@@ -28,7 +27,7 @@ export interface MouthParameters {
   /**
    * Controls the curvature from frown to smile, most prominent when openness is low.
    * 0: Maximum frown.
-   * 0.5: Neutral horizontal line/ellipse.
+   * 0.5: Neutral horizontal curve/ellipse-like shape.
    * 1: Maximum smile.
    * Clamped between 0 and 1.
    */
@@ -47,8 +46,10 @@ export interface MouthAppearanceOptions {
   strokeColor?: string;
   /** Stroke width for the mouth outline. Defaults to 1. Only visible if strokeColor is not 'none'. */
   strokeWidth?: number;
-  /** Maximum curvature influence for mood (as ratio of width/2). Defaults to 0.6. */
+  /** Maximum curvature influence for mood (as ratio of width/2). Defaults to 0.8 (may need tuning for Beziers). */
   maxMoodInfluenceRatio?: number;
+  /** Controls the "pointiness" of the Bezier curve. 1.0 is smooth, >1 makes it pointier. Defaults to 1.0. */
+  bezierSharpness?: number; // New option for tuning Bezier shape
 }
 
 // --- Default values ---
@@ -56,11 +57,12 @@ const DEFAULT_MOUTH_WIDTH = 20;
 const DEFAULT_FILL_COLOR = "black";
 const DEFAULT_STROKE_COLOR = "none";
 const DEFAULT_STROKE_WIDTH = 1;
-const DEFAULT_MAX_MOOD_RATIO = 0.6;
+const DEFAULT_MAX_MOOD_RATIO = 0.8; // Adjusted default for Bezier
+const DEFAULT_BEZIER_SHARPNESS = 1.0; // Default to smooth quadratic curve
 
 /**
- * Creates SVG elements representing a morphable mouth shape.
- * The shape transitions between a curve (smile/frown) and a circle based on parameters.
+ * Creates SVG elements representing a morphable mouth shape using Bezier curves.
+ * The shape transitions between a curve (smile/frown) and a circle-like shape based on parameters.
  *
  * @param x - The desired center X coordinate for the mouth.
  * @param y - The desired center Y coordinate for the mouth baseline.
@@ -80,63 +82,74 @@ export function createMorphingMouth(
   const strokeColor = options?.strokeColor ?? DEFAULT_STROKE_COLOR;
   const strokeWidth = options?.strokeWidth ?? DEFAULT_STROKE_WIDTH;
   const maxMoodRatio = options?.maxMoodInfluenceRatio ?? DEFAULT_MAX_MOOD_RATIO;
+  const sharpness = options?.bezierSharpness ?? DEFAULT_BEZIER_SHARPNESS;
 
   // Clamp parameters for safety
   const openness = clamp(params.openness, 0, 1);
   const mood = clamp(params.mood, 0, 1);
 
   // --- Calculate Path Parameters ---
-  const rx = Math.max(0.1, width / 2); // Ensure rx is slightly positive
+  const rx = Math.max(0.1, width / 2); // Horizontal radius
 
-  // Minimum vertical radius (increased slightly to avoid potential zero/degenerate cases)
+  // Minimum vertical extent (prevents complete collapse)
   const min_ry = Math.max(
-    0.1,
+    2,
     strokeColor !== "none" && strokeWidth > 0 ? strokeWidth / 2 : 0.5,
   );
 
-  // Base vertical radius
-  const base_ry = Math.max(min_ry, lerp(min_ry, rx, openness));
+  // Base vertical extent: interpolates from min_ry to rx based on openness
+  const baseVerticalExtent = Math.max(min_ry, lerp(min_ry, rx, openness));
 
-  // Mood influence
-  const moodFactor = lerp(-1, 1, mood); // -1 (frown) to +1 (smile)
+  // Mood influence: interpolates from -1 (frown) to +1 (smile)
+  const moodFactor = lerp(-1, 1, mood);
 
-  // Vertical offset caused by mood
-  const moodRyOffset = moodFactor * (rx * maxMoodRatio) * (1 - openness);
+  // Vertical offset caused by mood (strongest at openness=0)
+  // This offset determines how much the top/bottom control points deviate from the base extent
+  const moodVerticalOffset = moodFactor * (rx * maxMoodRatio) * (1 - openness);
 
-  // Final vertical radii for top and bottom arcs
-  const ry_bottom = Math.max(min_ry, base_ry + moodRyOffset);
-  const ry_top = Math.max(min_ry, base_ry - moodRyOffset);
+  // Calculate the target vertical positions for the control points
+  // Positive Y is down, Negative Y is up.
+  const bottomControlPointYTarget = y + baseVerticalExtent + moodVerticalOffset;
+  const topControlPointYTarget = y - baseVerticalExtent + moodVerticalOffset; // Note: mood offset applied symmetrically here
 
-  // --- Define the Path ---
+  // Apply sharpness factor to control points relative to the baseline 'y'
+  // This pulls the control points further away (if sharpness > 1) making the curve peak sharper
+  const bottomControlPointY = y + (bottomControlPointYTarget - y) * sharpness;
+  const topControlPointY = y + (topControlPointYTarget - y) * sharpness;
+
+  // --- Define the Path using Quadratic Bezier Curves (Q) ---
+  // Format: Q controlX controlY endX endY
   const startX = x - rx;
-  const startY = y;
+  const startY = y; // Start and end on the baseline
   const endX = x + rx;
   const endY = y;
 
-  // Using flags: Bottom (Small=0, CW=0), Top (Small=0, CCW=1)
-  // Added explicit Z close
+  // Control points are centered horizontally (at x)
+  const controlBottomX = x;
+  const controlTopX = x;
+
   const d = [
-    `M ${startX} ${startY}`,
-    `A ${rx.toFixed(3)} ${ry_bottom.toFixed(3)} 0 0 0 ${endX.toFixed(3)} ${endY.toFixed(3)}`, // Bottom arc
-    `A ${rx.toFixed(3)} ${ry_top.toFixed(3)} 0 0 1 ${startX.toFixed(3)} ${startY.toFixed(3)}`, // Top arc
-    `Z`, // Explicitly close path
+    `M ${startX.toFixed(3)} ${startY.toFixed(3)}`, // Move to start (left middle)
+    // Bottom curve: Control point determines downward curve
+    `Q ${controlBottomX.toFixed(3)} ${bottomControlPointY.toFixed(3)} ${endX.toFixed(3)} ${endY.toFixed(3)}`,
+    // Top curve: Control point determines upward curve
+    `Q ${controlTopX.toFixed(3)} ${topControlPointY.toFixed(3)} ${startX.toFixed(3)} ${startY.toFixed(3)}`,
+    `Z`, // Close the path
   ].join(" ");
 
   // --- Debug Logging ---
-  if (Math.abs(mood - 0.5) < 0.01 || openness < 0.01 || openness > 0.99) {
-    console.log(
-      `Params: open=${openness.toFixed(2)} mood=${mood.toFixed(2)} | Calc: rx=${rx.toFixed(2)} base_ry=${base_ry.toFixed(2)} moodOffset=${moodRyOffset.toFixed(2)} | Final: ry_bot=${ry_bottom.toFixed(2)} ry_top=${ry_top.toFixed(2)}`,
-    );
-    console.log("Path d:", d);
-  }
+  // if (Math.abs(mood - 0.5) < 0.01 || openness < 0.01 || openness > 0.99) {
+  //     console.log(`Params: open=${openness.toFixed(2)} mood=${mood.toFixed(2)} | Calc: rx=${rx.toFixed(2)} baseExt=${baseVerticalExtent.toFixed(2)} moodOffset=${moodVerticalOffset.toFixed(2)} | Final CP: TopY=${topControlPointY.toFixed(2)} BotY=${bottomControlPointY.toFixed(2)}`);
+  //     console.log("Path d:", d);
+  // }
   // --- End Debug ---
 
   // --- Create SVG Elements ---
   const group = document.createElementNS(svgNS, "g");
   group.setAttribute(
     "class",
-    "letter-attachment letter-mouth letter-mouth-morphing",
-  );
+    "letter-attachment letter-mouth letter-mouth-bezier",
+  ); // New class
 
   const path = document.createElementNS(svgNS, "path");
   path.setAttribute("d", d);
@@ -148,7 +161,6 @@ export function createMorphingMouth(
     path.setAttribute("stroke-linejoin", "round");
     path.setAttribute("stroke-linecap", "round");
   } else {
-    // Ensure no stroke is applied if color is 'none'
     path.removeAttribute("stroke");
     path.removeAttribute("stroke-width");
   }
