@@ -51,7 +51,8 @@ const animateMouthButton = document.getElementById(
 ) as HTMLButtonElement | null;
 
 // --- State ---
-let currentText: string = "L";
+let currentText: string =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZLabcdefghijklmnopqrstuvwxyz";
 // Updated LetterOptions structure
 let currentOptions: LetterOptions = {
   color: "#add8e6",
