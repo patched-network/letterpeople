@@ -126,7 +126,6 @@
             <label>
                 Fill Color (options.color):
                 <input type="color" id="fill-color-input" value="#add8e6" />
-                <!-- Light blue -->
             </label>
             <label>
                 Limb Thickness (options.lineWidth):
@@ -142,7 +141,6 @@
             <label>
                 Outline Color (options.strokeColor):
                 <input type="color" id="stroke-color-input" value="#333333" />
-                <!-- Dark grey -->
             </label>
             <label>
                 Outline Width (options.strokeWidth):
@@ -157,8 +155,35 @@
             </label>
 
             <hr />
-            <!-- Separator -->
+            <!-- Mouth Controls -->
+            <h4>Mouth Shape</h4>
+            <label>
+                Openness (mouthParams.openness):
+                <span class="range-value" id="mouth-openness-value">0.10</span>
+                <input
+                    type="range"
+                    id="mouth-openness-slider"
+                    min="0"
+                    max="1"
+                    value="0.1"
+                    step="0.01"
+                />
+            </label>
+            <label>
+                Mood (mouthParams.mood):
+                <span class="range-value" id="mouth-mood-value">0.70</span>
+                <input
+                    type="range"
+                    id="mouth-mood-slider"
+                    min="0"
+                    max="1"
+                    value="0.7"
+                    step="0.01"
+                />
+            </label>
 
+            <hr />
+            <!-- Other Controls -->
             <label class="checkbox-label">
                 <span>Show Attachment Points:</span>
                 <input type="checkbox" id="show-attachments-checkbox" checked />
@@ -176,6 +201,12 @@
                     step="5"
                 />
             </label>
+
+            <hr />
+            <!-- Action Button -->
+            <button id="animate-mouth-button" type="button">
+                Animate Mouth (First Letter)
+            </button>
         </div>
 
         <div id="letter-display-area">

@@ -1,4 +1,5 @@
-import { createLetter, LetterOptions, LetterRender } from "../src/index"; // Import types
+// Import LetterInstance and LetterOptions, remove unused LetterRender
+import { createLetter, LetterOptions, LetterInstance } from "../src/index";
 
 console.log("Dev environment running");
 
@@ -18,6 +19,20 @@ const strokeColorInput = document.getElementById(
 const strokeWidthInput = document.getElementById(
   "stroke-width-input",
 ) as HTMLInputElement | null;
+// Mouth controls
+const mouthOpennessSlider = document.getElementById(
+  "mouth-openness-slider",
+) as HTMLInputElement | null;
+const mouthOpennessValue = document.getElementById(
+  "mouth-openness-value",
+) as HTMLSpanElement | null;
+const mouthMoodSlider = document.getElementById(
+  "mouth-mood-slider",
+) as HTMLInputElement | null;
+const mouthMoodValue = document.getElementById(
+  "mouth-mood-value",
+) as HTMLSpanElement | null;
+// Other controls
 const showAttachmentsCheckbox = document.getElementById(
   "show-attachments-checkbox",
 ) as HTMLInputElement | null;
@@ -30,40 +45,59 @@ const sizeValueDisplay = document.getElementById(
 const displayArea = document.getElementById(
   "letter-display-area",
 ) as HTMLDivElement | null;
+const animateMouthButton = document.getElementById(
+  "animate-mouth-button",
+) as HTMLButtonElement | null;
 
 // --- State ---
 let currentText: string = "L";
+// Updated LetterOptions structure
 let currentOptions: LetterOptions = {
   color: "#add8e6",
   lineWidth: 25,
   strokeColor: "#333333",
   strokeWidth: 4,
+  // Initialize mouth params from default slider values
+  mouthParams: {
+    openness: 0.1,
+    mood: 0.7,
+  },
+  // Example: Set mouth appearance options if needed
+  // mouthAppearance: {
+  //     fillColor: 'red',
+  //     strokeColor: 'black',
+  //     strokeWidth: 0.5
+  // }
 };
-let showAttachments: boolean = true; // Default based on checkbox 'checked'
-let letterSize: number = 80; // Default based on slider value
+let showAttachments: boolean = true;
+let letterSize: number = 80;
+let renderedInstances: LetterInstance[] = []; // Store rendered instances
 
 // --- Helper: Visualize Attachment Points ---
 const svgNS = "http://www.w3.org/2000/svg";
 function visualizeAttachments(
   svg: SVGElement,
-  attachments: LetterRender["attachments"],
+  attachments: LetterInstance["attachmentCoords"], // Use correct type
 ) {
+  // Remove previous points first if re-visualizing
+  svg
+    .querySelectorAll(".attachment-point, .attachment-label")
+    .forEach((el) => el.remove());
+
   for (const key in attachments) {
     const point = attachments[key];
-
     // Draw circle
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("cx", String(point.x));
     circle.setAttribute("cy", String(point.y));
-    circle.setAttribute("r", "3"); // Fixed radius for visibility
-    circle.setAttribute("class", "attachment-point"); // Use CSS class
+    circle.setAttribute("r", "3");
+    circle.setAttribute("class", "attachment-point");
     svg.appendChild(circle);
-
     // Draw label
     const text = document.createElementNS(svgNS, "text");
-    text.setAttribute("x", String(point.x + 5)); // Offset slightly
-    text.setAttribute("y", String(point.y + 5)); // Offset slightly
-    text.setAttribute("class", "attachment-label"); // Use CSS class
+    text.setAttribute("x", String(point.x + 5));
+    text.setAttribute("y", String(point.y + 5));
+    text.setAttribute("class", "attachment-label");
     text.textContent = key;
     svg.appendChild(text);
   }
@@ -76,14 +110,16 @@ function renderLetters() {
     return;
   }
 
+  // Clean up old instances first
+  renderedInstances.forEach((instance) => instance.destroy());
+  renderedInstances = [];
+  displayArea.innerHTML = ""; // Clear display area completely
+
   // Update CSS variable for letter size
   document.documentElement.style.setProperty(
     "--letter-size",
     `${letterSize}px`,
   );
-
-  // Clear previous letters
-  displayArea.innerHTML = "";
 
   const textToRender = currentText.toUpperCase();
 
@@ -91,16 +127,21 @@ function renderLetters() {
     const wrapper = document.createElement("div");
     wrapper.className = "letter-wrapper";
 
-    const letterInfo = createLetter(char, wrapper, currentOptions);
+    // Pass the *full* currentOptions, including mouthParams
+    const letterInstance = createLetter(char, wrapper, currentOptions);
 
-    if (letterInfo) {
+    if (letterInstance) {
+      renderedInstances.push(letterInstance); // Store the instance
       // Visualize attachments if enabled
       if (showAttachments) {
-        visualizeAttachments(letterInfo.svg, letterInfo.attachments);
+        visualizeAttachments(
+          letterInstance.svgElement,
+          letterInstance.attachmentCoords,
+        );
       }
       displayArea.appendChild(wrapper);
     } else {
-      console.warn(`Renderer for letter "${char}" not found.`);
+      // console.warn(`Renderer for letter "${char}" not found.`); // Already logged in createLetter
       const placeholder = document.createElement("div");
       placeholder.className = "placeholder";
       placeholder.textContent = char;
@@ -109,17 +150,42 @@ function renderLetters() {
   }
 }
 
+// --- Update Mouth Function (called by sliders) ---
+function updateMouthShapes() {
+  if (!currentOptions.mouthParams) return; // Should exist, but safety check
+
+  const paramsToUpdate = {
+    openness: currentOptions.mouthParams.openness,
+    mood: currentOptions.mouthParams.mood,
+  };
+
+  // Update all rendered instances
+  renderedInstances.forEach((instance) => {
+    instance.updateMouth(paramsToUpdate);
+    // Re-visualize attachments if needed (updateMouth replaces the element)
+    if (showAttachments) {
+      visualizeAttachments(instance.svgElement, instance.attachmentCoords);
+    }
+  });
+}
+
 // --- Event Listeners ---
 function setupEventListeners() {
+  // Check all elements exist
   if (
     !textInput ||
     !fillColorInput ||
     !lineWidthInput ||
     !strokeColorInput ||
     !strokeWidthInput ||
+    !mouthOpennessSlider ||
+    !mouthOpennessValue ||
+    !mouthMoodSlider ||
+    !mouthMoodValue ||
     !showAttachmentsCheckbox ||
     !sizeSlider ||
-    !sizeValueDisplay
+    !sizeValueDisplay ||
+    !animateMouthButton
   ) {
     console.error("One or more control inputs are missing!");
     return;
@@ -128,10 +194,10 @@ function setupEventListeners() {
   // Text Input
   textInput.addEventListener("input", (event) => {
     currentText = (event.target as HTMLInputElement).value;
-    renderLetters();
+    renderLetters(); // Full re-render for new text
   });
 
-  // Options Inputs
+  // Base Options Inputs (trigger full re-render)
   fillColorInput.addEventListener("input", (event) => {
     currentOptions.color = (event.target as HTMLInputElement).value;
     renderLetters();
@@ -154,20 +220,56 @@ function setupEventListeners() {
     renderLetters();
   });
 
+  // Mouth Openness Slider (trigger mouth update)
+  mouthOpennessSlider.addEventListener("input", (event) => {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    currentOptions.mouthParams!.openness = value; // Update state
+    mouthOpennessValue.textContent = value.toFixed(2); // Update display
+    updateMouthShapes(); // Update existing mouths
+  });
+
+  // Mouth Mood Slider (trigger mouth update)
+  mouthMoodSlider.addEventListener("input", (event) => {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    currentOptions.mouthParams!.mood = value; // Update state
+    mouthMoodValue.textContent = value.toFixed(2); // Update display
+    updateMouthShapes(); // Update existing mouths
+  });
+
   // Show Attachments Checkbox
   showAttachmentsCheckbox.addEventListener("change", (event) => {
     showAttachments = (event.target as HTMLInputElement).checked;
-    renderLetters(); // Re-render to add/remove points
+    // Re-render or just toggle visibility
+    if (showAttachments) {
+      renderedInstances.forEach((instance) =>
+        visualizeAttachments(instance.svgElement, instance.attachmentCoords),
+      );
+    } else {
+      renderedInstances.forEach((instance) => {
+        instance.svgElement
+          .querySelectorAll(".attachment-point, .attachment-label")
+          .forEach((el) => el.remove());
+      });
+    }
   });
 
-  // Size Slider
+  // Size Slider (trigger full re-render)
   sizeSlider.addEventListener("input", (event) => {
     letterSize = parseInt((event.target as HTMLInputElement).value, 10);
-    // Update the display value next to the slider
-    if (sizeValueDisplay) {
-      sizeValueDisplay.textContent = `${letterSize}px`;
+    sizeValueDisplay.textContent = `${letterSize}px`;
+    renderLetters();
+  });
+
+  // Animate Mouth Button
+  animateMouthButton.addEventListener("click", () => {
+    if (renderedInstances.length > 0) {
+      console.log("Animating mouth of first letter...");
+      renderedInstances[0]
+        .animateMouth()
+        .catch((err) => console.error("Animation failed:", err));
+    } else {
+      console.log("No letters rendered to animate.");
     }
-    renderLetters(); // Re-render with new size (via CSS variable)
   });
 }
 
@@ -180,10 +282,15 @@ document.addEventListener("DOMContentLoaded", () => {
     lineWidthInput &&
     strokeColorInput &&
     strokeWidthInput &&
+    mouthOpennessSlider &&
+    mouthOpennessValue &&
+    mouthMoodSlider &&
+    mouthMoodValue &&
     showAttachmentsCheckbox &&
     sizeSlider &&
     sizeValueDisplay &&
-    displayArea
+    displayArea &&
+    animateMouthButton // Add button check
   ) {
     // Set initial state from HTML values
     currentText = textInput.value;
@@ -192,12 +299,21 @@ document.addEventListener("DOMContentLoaded", () => {
       lineWidth: parseInt(lineWidthInput.value, 10),
       strokeColor: strokeColorInput.value,
       strokeWidth: parseFloat(strokeWidthInput.value),
+      mouthParams: {
+        // Initialize from sliders
+        openness: parseFloat(mouthOpennessSlider.value),
+        mood: parseFloat(mouthMoodSlider.value),
+      },
+      // mouthAppearance: { ... } // Initialize if needed
     };
     showAttachments = showAttachmentsCheckbox.checked;
     letterSize = parseInt(sizeSlider.value, 10);
 
-    // Set initial display value for slider
+    // Set initial display values for sliders
     sizeValueDisplay.textContent = `${letterSize}px`;
+    mouthOpennessValue.textContent =
+      currentOptions.mouthParams!.openness.toFixed(2);
+    mouthMoodValue.textContent = currentOptions.mouthParams!.mood.toFixed(2);
 
     setupEventListeners();
     renderLetters(); // Initial render
