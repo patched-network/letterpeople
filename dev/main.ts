@@ -163,7 +163,7 @@ function updateMouthShapes() {
 
   // Update all rendered instances
   renderedInstances.forEach((instance) => {
-    instance.updateMouth(paramsToUpdate);
+    instance.mouth.updateShape(paramsToUpdate);
     // Re-visualize attachments if needed (updateMouth replaces the element)
     if (showAttachments) {
       visualizeAttachments(instance.svgElement, instance.attachmentCoords);
@@ -266,9 +266,9 @@ function setupEventListeners() {
   animateMouthButton.addEventListener("click", () => {
     if (renderedInstances.length > 0) {
       console.log("Animating mouth of first letter...");
-      renderedInstances[0]
-        .animateMouth()
-        .catch((err) => console.error("Animation failed:", err));
+      renderedInstances[0].mouth.animateSpeak!({}).catch((err) =>
+        console.error("Animation failed:", err),
+      );
     } else {
       console.log("No letters rendered to animate.");
     }
