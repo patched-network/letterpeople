@@ -1,11 +1,21 @@
-import type { EyeOptions } from "./attachments/eye";
-// Import the new mouth types
+// Import attachment controller interfaces and their specific options/params
+import type {
+  MouthAttachment,
+  EyesAttachment, // Assuming this will be the group controller for eyes
+  // EyeAttachment, // Individual eye controller, might be used by EyesAttachment internally
+} from "./attachments/types"; // Import the new attachment controller types
+
 import type {
   MouthParameters,
   MouthAppearanceOptions,
-} from "./attachments/mouth";
+} from "./attachments/mouth"; // Keep these for LetterOptions
 
+// Re-export for convenience if needed by consumers of the library for options
 export type { MouthParameters, MouthAppearanceOptions };
+
+// Import options for individual attachments if they are directly configurable via LetterOptions
+// For example, if EyeOptions were still used directly in LetterOptions:
+// import type { EyeOptions } from "./attachments/eye";
 
 // Basic point type
 export interface Point {
@@ -18,72 +28,106 @@ export interface LetterOptions {
   // Base letter appearance
   color?: string;
   lineWidth?: number;
-  borderColor?: string;
-  borderWidth?: number;
+  // Renamed strokeColor and strokeWidth for consistency with other parts of the project
+  strokeColor?: string; // Was borderColor
+  strokeWidth?: number; // Was borderWidth
   style?: "sans-serif" | "serif";
 
   // --- Attachment Options ---
-  // Simple override for eye size (can be expanded)
-  eyeSize?: number;
+  // These options are for the *initial creation* of attachments.
+  // The attachment controller instances will handle their own state and updates later.
+
+  // Example: Options for individual eyes if EyesAttachment doesn't fully encapsulate them
+  // or if they need distinct initial settings.
+  // leftEyeOptions?: Partial<EyeOptions>; // Assuming EyeOptions is defined for individual eye appearance
+  // rightEyeOptions?: Partial<EyeOptions>;
+  eyeSize?: number; // Simple override, could be part of a more complex EyeOptions
+
   // Nested options for the morphing mouth
-  mouthParams?: Partial<MouthParameters>; // Allow partial overrides
-  mouthAppearance?: Partial<MouthAppearanceOptions>; // Allow partial overrides
+  mouthParams?: Partial<MouthParameters>;
+  mouthAppearance?: Partial<MouthAppearanceOptions>;
+
+  // Add other attachment-specific initial options here as new attachments are developed
+  // e.g., eyebrowOptions?: Partial<EyebrowAppearanceOptions>;
 }
 
-// Structure for rendered attachment elements
-export interface AttachmentElements {
-  leftEye?: SVGGElement;
-  rightEye?: SVGGElement;
-  mouth?: SVGGElement; // This will now hold the morphing mouth group
-  // Add others like hatElement, armElements etc. if they need direct manipulation
-}
-
-// Animation options (example)
+// General animation options, can be used by high-level LetterInstance methods
 export interface AnimationOptions {
   duration?: number;
-  // Add other animation parameters as needed (easing, delay, etc.)
+  easing?: string;
+  delay?: number;
+  // Add other animation parameters as needed
 }
 
 // The main return type - Represents a fully constructed and controllable letter character
 export interface LetterInstance {
   /** The root <svg> element of the letter */
-  svgElement: SVGElement;
-  /** Map of logical attachment point names to their coordinates relative to the SVG origin */
-  attachmentCoords: { [key: string]: Point };
-  /** References to the actual rendered SVG elements for key attachments */
-  attachmentElements: AttachmentElements;
+  readonly svgElement: SVGElement;
+
+  /**
+   * Map of logical attachment point names to their coordinates relative to the SVG origin.
+   * Still useful for initial placement and debugging.
+   */
+  readonly attachmentCoords: { [key: string]: Point };
+
   /** The letter character this instance represents (e.g., 'L') */
   readonly character: string;
+
   /** Reference to the container element this letter was added to */
   readonly parentElement: Element;
 
-  // --- Control Methods ---
-  /**
-   * Triggers a 'speaking' animation, primarily affecting the mouth.
-   * @param options Optional parameters for the animation.
-   */
-  animateMouth(options?: AnimationOptions): Promise<void>; // Return Promise for async animations
+  // --- Direct Accessors to Attachment Controllers ---
+  readonly mouth: MouthAttachment;
+  readonly eyes: EyesAttachment;
+  // readonly leftEyebrow?: EyebrowAttachment; // Example for future
+  // readonly rightEyebrow?: EyebrowAttachment; // Example for future
+  // ... other attachments
 
   /**
-   * Removes the letter's SVG element from the DOM.
+   * Removes the letter's SVG element from the DOM and performs any necessary cleanup.
    */
   destroy(): void;
 
-  // --- NEW (Potential): Method to update mouth shape ---
+  // --- High-Level Expression/Action Methods (Examples - to be implemented later) ---
   /**
-   * Updates the mouth's shape based on new parameters.
-   * @param params New parameters for the mouth shape.
+   * Makes the letter express a specific emotion.
+   * This method will coordinate animations across multiple attachments.
+   * @param emotion The emotion to express (e.g., 'happy', 'sad', 'shocked', 'neutral').
+   * @param options Optional animation parameters for the transition.
+   * @returns A Promise that resolves when the expression animation completes.
    */
-  updateMouth(params: Partial<MouthParameters>): void; // Added for dynamic control
+  // express(emotion: string, options?: AnimationOptions): Promise<void>;
 
-  // --- Potential Future Methods ---
-  // updateOptions(newOptions: Partial<LetterOptions>): void;
-  // setPosition(x: number, y: number): void;
+  /**
+   * Triggers a brief "speak" animation, typically a quick mouth movement.
+   * @param options Optional animation parameters.
+   * @returns A Promise that resolves when the speak animation completes.
+   */
+  // speakPulse(options?: AnimationOptions): Promise<void>;
+
+  // --- Potential Future General Methods ---
+  // updateBaseAppearance(newOptions: Partial<Pick<LetterOptions, 'color' | 'lineWidth' | ...>>): void;
+  // setPosition(x: number, y: number): void; // If managing position outside CSS
   // wiggle(options?: AnimationOptions): void;
 }
 
-/** @internal Result from an internal letter shape renderer */
+/**
+ * @internal
+ * Result from an internal letter shape renderer (e.g., L-uppercase.ts).
+ * This remains unchanged as it defines the raw output of the letter's path and attachment points.
+ */
 export interface InternalLetterRenderResult {
   svg: SVGElement; // The base SVG element with the letter path
-  attachments: { [key: string]: Point }; // The calculated attachment coordinates
+  attachments: AttachmentList; // The calculated attachment coordinates
+}
+
+export interface AttachmentList {
+  mouth: Point;
+  leftEye: Point;
+  rightEye: Point;
+  leftLeg: Point;
+  rightLeg: Point;
+  leftArm: Point;
+  rightArm: Point;
+  hat: Point;
 }

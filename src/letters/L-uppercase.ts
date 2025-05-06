@@ -3,6 +3,7 @@ import type {
   LetterOptions,
   InternalLetterRenderResult,
   Point,
+  AttachmentList,
 } from "../types";
 
 // Define constants for our coordinate space
@@ -64,7 +65,7 @@ function renderL_uppercase(
 
   // --- Attachment Points Calculation (Relative to 0,0 of the viewBox) ---
   // Ensure the keys match the expected structure if defined strictly in LetterInstance later
-  const attachments: { [key: string]: Point } = {
+  const attachments: AttachmentList = {
     // Eyes and mouth on the upper part of the vertical stem
     leftEye: { x: T * 0.3, y: T * 0.8 },
     rightEye: { x: T * 0.7, y: T * 0.8 },

@@ -1,21 +1,37 @@
 import type {
   LetterInstance,
-  AttachmentElements,
+  // No longer need AttachmentElements from here
   Point,
-  AnimationOptions,
+  // AnimationOptions, // Keep for future high-level methods
   LetterOptions,
   InternalLetterRenderResult,
   MouthParameters,
+  MouthAppearanceOptions,
 } from "./types";
-// import { animate } from "animejs";
+
+// Import the new attachment controller INTERFACES
+import type {
+  MouthAttachment,
+  EyesAttachment,
+  EyeAttachment,
+  // AttachmentAnimationOptions, // Not used directly in this file yet
+  // attachmentTypes // Not used directly in this file yet
+} from "./attachments/types";
+
+// Import SVG element creators (these are still needed)
+import {
+  createEye,
+  EyeOptions,
+  createEyeController,
+  createEyesGroupController,
+} from "./attachments/eye";
+import {
+  createMorphingMouth,
+  createMorphingMouthController,
+} from "./attachments/mouth";
 
 // Import letter implementations
 import L from "./letters/L-uppercase";
-
-// Import attachment creators
-import { createEye } from "./attachments/eye";
-// Import the new morphing mouth creator
-import { createMorphingMouth } from "./attachments/mouth";
 
 // Map letters to their rendering functions
 const letterRenderers: {
@@ -24,10 +40,10 @@ const letterRenderers: {
   L: L,
 };
 
-// Default parameters for the mouth if not provided
+// Default parameters for the mouth if not provided (still relevant for initial creation)
 const DEFAULT_MOUTH_PARAMS: MouthParameters = {
-  openness: 0.1, // Start slightly open
-  mood: 0.7, // Start slightly smiling
+  openness: 0.1,
+  mood: 0.7,
 };
 
 export function createLetter(
@@ -35,7 +51,7 @@ export function createLetter(
   target: Element,
   options?: LetterOptions,
 ): LetterInstance | null {
-  const renderer = letterRenderers[letter.toUpperCase()]; // Use uppercase lookup
+  const renderer = letterRenderers[letter.toUpperCase()];
   if (!renderer) {
     console.warn(`Renderer for letter "${letter}" not found.`);
     return null;
@@ -47,127 +63,89 @@ export function createLetter(
     const svg = internalResult.svg;
     const attachmentCoords = internalResult.attachments;
 
-    // 2. Create and append attachments
-    const attachmentElements: AttachmentElements = {};
+    // 2. Create Attachment SVG Elements AND their Controllers
+    let mouthController: MouthAttachment;
 
-    // Eyes (as before)
-    if (attachmentCoords.leftEye) {
-      const eyeOptions = { size: options?.eyeSize };
-      const leftEyeEl = createEye(
-        attachmentCoords.leftEye.x,
-        attachmentCoords.leftEye.y,
-        eyeOptions,
-      );
-      svg.appendChild(leftEyeEl);
-      attachmentElements.leftEye = leftEyeEl;
-    }
-    if (attachmentCoords.rightEye) {
-      const eyeOptions = { size: options?.eyeSize };
-      const rightEyeEl = createEye(
-        attachmentCoords.rightEye.x,
-        attachmentCoords.rightEye.y,
-        eyeOptions,
-      );
-      svg.appendChild(rightEyeEl);
-      attachmentElements.rightEye = rightEyeEl;
-    }
+    const initialMouthParams: MouthParameters = {
+      ...DEFAULT_MOUTH_PARAMS,
+      ...(options?.mouthParams || {}),
+    };
 
-    // Morphing Mouth
-    if (attachmentCoords.mouth) {
-      // Merge provided params with defaults
-      const currentMouthParams: MouthParameters = {
-        ...DEFAULT_MOUTH_PARAMS,
-        ...(options?.mouthParams || {}),
-      };
+    const mouthSvgElement = createMorphingMouth(
+      // Creates the <g> element for the mouth
+      attachmentCoords.mouth.x,
+      attachmentCoords.mouth.y,
+      initialMouthParams,
+      options?.mouthAppearance,
+    );
+    svg.appendChild(mouthSvgElement); // Add the mouth's SVG to the main letter SVG
 
-      const mouthEl = createMorphingMouth(
-        attachmentCoords.mouth.x,
-        attachmentCoords.mouth.y,
-        currentMouthParams, // Pass the initial parameters
-        options?.mouthAppearance, // Pass appearance options
-      );
-      svg.appendChild(mouthEl);
-      attachmentElements.mouth = mouthEl;
-    }
-    // ... create/append other attachments ...
+    // Now, create the controller for this mouth element
+    mouthController = createMouthController(
+      mouthSvgElement,
+      initialMouthParams,
+      options?.mouthAppearance,
+      attachmentCoords.mouth, // Pass the coordinate for potential re-creation logic
+    );
+
+    let leftEyeCtrl: EyeAttachment;
+    const leftEyeSvgElement = createEye(
+      attachmentCoords.leftEye.x,
+      attachmentCoords.leftEye.y,
+      { size: options?.eyeSize },
+    );
+    svg.appendChild(leftEyeSvgElement);
+    leftEyeCtrl = createEyeController(leftEyeSvgElement, {
+      size: options?.eyeSize,
+    });
+
+    let rightEyeCtrl: EyeAttachment;
+
+    const rightEyeSvgElement = createEye(
+      attachmentCoords.rightEye.x,
+      attachmentCoords.rightEye.y,
+      { size: options?.eyeSize },
+    );
+    svg.appendChild(rightEyeSvgElement);
+    rightEyeCtrl = createEyeController(rightEyeSvgElement, {
+      size: options?.eyeSize,
+    });
+
+    // Create the eyes group controller
+    // It's non-optional in LetterInstance, so always create one.
+    // The createEyesGroupController can decide if it's "active" based on its children.
+    const eyesController: EyesAttachment = createEyesGroupController(
+      leftEyeCtrl,
+      rightEyeCtrl,
+    );
+
+    // If EyesGroupController itself had a wrapping <g>, it would be appended here.
+    // For now, it's assumed to be a logical grouping of the individual eye controllers.
+
+    // ... Instantiate other attachment controllers similarly ...
 
     // 3. Append the complete SVG to the target container
     target.appendChild(svg);
 
     // 4. Create and return the LetterInstance object
-    const instance: LetterInstance & { _currentMouthParams: any } = {
+    const instance: LetterInstance = {
       svgElement: svg,
-      attachmentCoords: attachmentCoords,
-      attachmentElements: attachmentElements,
+      attachmentCoords: attachmentCoords, // Still useful for reference
       character: letter,
       parentElement: target,
 
-      // Store current mouth params internally for updateMouth
-      _currentMouthParams: {
-        ...DEFAULT_MOUTH_PARAMS,
-        ...(options?.mouthParams || {}),
-      },
-
-      animateMouth: async (animOptions?: AnimationOptions): Promise<void> => {
-        const mouthElement =
-          instance.attachmentElements.mouth?.querySelector("path"); // Target the path inside the group
-        if (!mouthElement) return;
-
-        const duration = animOptions?.duration ?? 300;
-
-        // TODO: Refine animation - this basic scale is less effective now.
-        // A better approach would be to animate the 'openness' parameter
-        // using anime's ability to call a function on update, then redraw the path.
-        // Or, directly animate the 'd' attribute if the structure is consistent.
-        // For now, keep the simple scale as a placeholder.
-        // await animate({
-        //   targets: instance.attachmentElements.mouth, // Target the group for transform
-        //   scaleY: [
-        //     { value: 1.4, duration: duration * 0.4, easing: "easeOutQuad" },
-        //     { value: 1.0, duration: duration * 0.6, easing: "easeInQuad" },
-        //   ],
-        //   // transformOrigin is set in createMorphingMouth
-        // }).finished;
-      },
-
-      updateMouth: (newParams: Partial<MouthParameters>): void => {
-        const mouthGroup = instance.attachmentElements.mouth;
-        const mouthCoord = instance.attachmentCoords.mouth;
-        if (!mouthGroup || !mouthCoord) return;
-
-        // Update internal state
-        instance._currentMouthParams = {
-          ...instance._currentMouthParams,
-          ...newParams,
-        };
-
-        // Re-create the mouth element with new parameters
-        // Note: This replaces the existing mouth element entirely.
-        // More efficient might be to update the 'd' attribute of the existing path,
-        // but that requires recalculating 'd' here. Re-creating is simpler for now.
-        const newMouthEl = createMorphingMouth(
-          mouthCoord.x,
-          mouthCoord.y,
-          instance._currentMouthParams,
-          options?.mouthAppearance, // Reuse original appearance options
-        );
-
-        // Replace the old mouth group with the new one
-        mouthGroup.replaceWith(newMouthEl);
-        // Update the reference in the instance
-        instance.attachmentElements.mouth = newMouthEl;
-      },
+      // Assign the created controller instances
+      mouth: mouthController,
+      eyes: eyesController,
+      // ... assign other attachment controllers ...
 
       destroy: (): void => {
-        instance.svgElement.remove();
-        // Clean up internal state if needed
+        svg.remove();
+        // If attachment controllers have their own destroy methods for cleanup
+        // (e.g., removing event listeners they set up), call them here:
+        // mouthController.destroy?.();
+        // eyesController.destroy?.(); // Or eyesController.left.destroy?.(); eyesController.right.destroy?.();
       },
-    };
-
-    // Add internal state property dynamically (or define it properly in the interface/class)
-    (instance as any)._currentMouthParams = {
-      ...DEFAULT_MOUTH_PARAMS,
-      ...(options?.mouthParams || {}),
     };
 
     return instance;
