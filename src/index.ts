@@ -1,4 +1,3 @@
-// letterpeople/src/index.ts
 import type {
   LetterInstance,
   AttachmentElements,
@@ -6,54 +5,54 @@ import type {
   AnimationOptions,
   LetterOptions,
   InternalLetterRenderResult,
+  MouthParameters,
 } from "./types";
-import { animate } from "animejs";
+// import { animate } from "animejs";
 
 // Import letter implementations
 import L from "./letters/L-uppercase";
 
+// Import attachment creators
+import { createEye } from "./attachments/eye";
+// Import the new morphing mouth creator
+import { createMorphingMouth } from "./attachments/mouth";
+
 // Map letters to their rendering functions
-// Use uppercase for consistency internally
 const letterRenderers: {
   [key: string]: (options?: LetterOptions) => InternalLetterRenderResult;
 } = {
-  // 'A': A,
   L: L,
-  // 'a': a, // Example if lowercase is distinct
 };
 
-import { createEye } from "./attachments/eye";
-import {
-  createMorphingMouth,
-  createMouth,
-  MouthAppearanceOptions,
-  MouthOptions,
-  MouthParameters,
-} from "./attachments/mouth";
+// Default parameters for the mouth if not provided
+const DEFAULT_MOUTH_PARAMS: MouthParameters = {
+  openness: 0.1, // Start slightly open
+  mood: 0.7, // Start slightly smiling
+};
 
 export function createLetter(
   letter: string,
   target: Element,
   options?: LetterOptions,
 ): LetterInstance | null {
-  // ... (lookup renderer as before) ...
-  const renderer = letterRenderers[letter];
+  const renderer = letterRenderers[letter.toUpperCase()]; // Use uppercase lookup
   if (!renderer) {
-    /* ... handle not found ... */ return null;
+    console.warn(`Renderer for letter "${letter}" not found.`);
+    return null;
   }
 
   try {
-    // 1. Get base SVG and attachment coordinates from the specific letter renderer
+    // 1. Get base SVG and attachment coordinates
     const internalResult: InternalLetterRenderResult = renderer(options);
     const svg = internalResult.svg;
     const attachmentCoords = internalResult.attachments;
 
-    // 2. Create and append default attachments (eyes, mouth)
+    // 2. Create and append attachments
     const attachmentElements: AttachmentElements = {};
 
+    // Eyes (as before)
     if (attachmentCoords.leftEye) {
-      // Pass relevant options if LetterOptions includes them, e.g., options?.eyeOptions
-      const eyeOptions = { size: options?.eyeSize /*, ... other options */ };
+      const eyeOptions = { size: options?.eyeSize };
       const leftEyeEl = createEye(
         attachmentCoords.leftEye.x,
         attachmentCoords.leftEye.y,
@@ -63,7 +62,7 @@ export function createLetter(
       attachmentElements.leftEye = leftEyeEl;
     }
     if (attachmentCoords.rightEye) {
-      const eyeOptions = { size: options?.eyeSize /*, ... */ };
+      const eyeOptions = { size: options?.eyeSize };
       const rightEyeEl = createEye(
         attachmentCoords.rightEye.x,
         attachmentCoords.rightEye.y,
@@ -72,72 +71,103 @@ export function createLetter(
       svg.appendChild(rightEyeEl);
       attachmentElements.rightEye = rightEyeEl;
     }
+
+    // Morphing Mouth
     if (attachmentCoords.mouth) {
-      // Define initial dynamic parameters for the mouth shape
-      const mouthParams: MouthParameters = {
-        openness: 0, // Start as a curve (not open)
-        mood: 0, // Start slightly smiling (0=frown, 0.5=neutral, 1=smile)
+      // Merge provided params with defaults
+      const currentMouthParams: MouthParameters = {
+        ...DEFAULT_MOUTH_PARAMS,
+        ...(options?.mouthParams || {}),
       };
 
-      // Define static appearance options
-      // These could potentially be overridden by values in the main 'options: LetterOptions'
-      // if we add corresponding properties there (e.g., options.mouthWidth)
-      const appearanceOptions: MouthAppearanceOptions = {
-        // Let's use the defaults defined in createMorphingMouth for now
-        // width: options?.mouthWidth, // Example if LetterOptions had mouthWidth
-        // fillColor: options?.mouthFillColor,
-      };
-
-      // Create the mouth element using the morphing function
       const mouthEl = createMorphingMouth(
         attachmentCoords.mouth.x,
         attachmentCoords.mouth.y,
-        mouthParams,
-        appearanceOptions,
+        currentMouthParams, // Pass the initial parameters
+        options?.mouthAppearance, // Pass appearance options
       );
-
-      // Append the mouth group to the main SVG
       svg.appendChild(mouthEl);
-
-      // Store the reference to the mouth group
       attachmentElements.mouth = mouthEl;
     }
-    // ... create/append other default attachments ...
+    // ... create/append other attachments ...
 
     // 3. Append the complete SVG to the target container
     target.appendChild(svg);
 
     // 4. Create and return the LetterInstance object
-    const instance: LetterInstance = {
+    const instance: LetterInstance & { _currentMouthParams: any } = {
       svgElement: svg,
       attachmentCoords: attachmentCoords,
       attachmentElements: attachmentElements,
       character: letter,
       parentElement: target,
 
+      // Store current mouth params internally for updateMouth
+      _currentMouthParams: {
+        ...DEFAULT_MOUTH_PARAMS,
+        ...(options?.mouthParams || {}),
+      },
+
       animateMouth: async (animOptions?: AnimationOptions): Promise<void> => {
-        const mouthElement = instance.attachmentElements.mouth;
-        if (!mouthElement) return; // No mouth to animate
+        const mouthElement =
+          instance.attachmentElements.mouth?.querySelector("path"); // Target the path inside the group
+        if (!mouthElement) return;
 
-        const duration = animOptions?.duration ?? 300; // Default duration
+        const duration = animOptions?.duration ?? 300;
 
-        // Example animation: scale mouth vertically (simple open/close)
-        // Ensure animejs types are installed: yarn add -D @types/animejs
-        await animate({
-          targets: mouthElement,
-          scaleY: [
-            { value: 1.4, duration: duration * 0.4, easing: "easeOutQuad" }, // Open
-            { value: 1.0, duration: duration * 0.6, easing: "easeInQuad" }, // Close
-          ],
-          // transformOrigin: '50% 50%', // Ensure scaling is centered if needed
-          // Add more complex path morphing or transforms later
-        }).finished; // Return the promise from animejs
+        // TODO: Refine animation - this basic scale is less effective now.
+        // A better approach would be to animate the 'openness' parameter
+        // using anime's ability to call a function on update, then redraw the path.
+        // Or, directly animate the 'd' attribute if the structure is consistent.
+        // For now, keep the simple scale as a placeholder.
+        // await animate({
+        //   targets: instance.attachmentElements.mouth, // Target the group for transform
+        //   scaleY: [
+        //     { value: 1.4, duration: duration * 0.4, easing: "easeOutQuad" },
+        //     { value: 1.0, duration: duration * 0.6, easing: "easeInQuad" },
+        //   ],
+        //   // transformOrigin is set in createMorphingMouth
+        // }).finished;
+      },
+
+      updateMouth: (newParams: Partial<MouthParameters>): void => {
+        const mouthGroup = instance.attachmentElements.mouth;
+        const mouthCoord = instance.attachmentCoords.mouth;
+        if (!mouthGroup || !mouthCoord) return;
+
+        // Update internal state
+        instance._currentMouthParams = {
+          ...instance._currentMouthParams,
+          ...newParams,
+        };
+
+        // Re-create the mouth element with new parameters
+        // Note: This replaces the existing mouth element entirely.
+        // More efficient might be to update the 'd' attribute of the existing path,
+        // but that requires recalculating 'd' here. Re-creating is simpler for now.
+        const newMouthEl = createMorphingMouth(
+          mouthCoord.x,
+          mouthCoord.y,
+          instance._currentMouthParams,
+          options?.mouthAppearance, // Reuse original appearance options
+        );
+
+        // Replace the old mouth group with the new one
+        mouthGroup.replaceWith(newMouthEl);
+        // Update the reference in the instance
+        instance.attachmentElements.mouth = newMouthEl;
       },
 
       destroy: (): void => {
         instance.svgElement.remove();
-        // Potentially clean up event listeners or other resources if added later
+        // Clean up internal state if needed
       },
+    };
+
+    // Add internal state property dynamically (or define it properly in the interface/class)
+    (instance as any)._currentMouthParams = {
+      ...DEFAULT_MOUTH_PARAMS,
+      ...(options?.mouthParams || {}),
     };
 
     return instance;
