@@ -56,7 +56,7 @@ let currentText: string = "L";
 let currentOptions: LetterOptions = {
   color: "#add8e6",
   lineWidth: 25,
-  strokeColor: "#333333",
+  borderColor: "#333333",
   borderWidth: 4,
   // Initialize mouth params from default slider values
   mouthParams: {
@@ -211,7 +211,7 @@ function setupEventListeners() {
     renderLetters();
   });
   strokeColorInput.addEventListener("input", (event) => {
-    currentOptions.strokeColor = (event.target as HTMLInputElement).value;
+    currentOptions.borderColor = (event.target as HTMLInputElement).value;
     renderLetters();
   });
   strokeWidthInput.addEventListener("input", (event) => {
@@ -298,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentOptions = {
       color: fillColorInput.value,
       lineWidth: parseInt(lineWidthInput.value, 10),
-      strokeColor: strokeColorInput.value,
+      borderColor: strokeColorInput.value,
       borderWidth: parseFloat(strokeWidthInput.value),
       mouthParams: {
         // Initialize from sliders

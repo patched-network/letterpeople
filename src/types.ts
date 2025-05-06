@@ -17,7 +17,7 @@ export interface Point {
 export interface LetterOptions {
   // Base letter appearance
   color?: string;
-  strokeColor?: string;
+  borderColor?: string;
   borderWidth?: number;
   lineWidth?: number;
   style?: "sans-serif" | "serif";

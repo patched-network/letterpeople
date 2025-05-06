@@ -34,7 +34,7 @@ function renderL_uppercase(
   // --- Options Processing ---
   const limbThickness = options?.lineWidth ?? DEFAULT_LIMB_THICKNESS;
   const fillColor = options?.color ?? "currentColor";
-  const outlineColor = options?.strokeColor ?? "black";
+  const outlineColor = options?.borderColor ?? "black";
   const outlineWidth = options?.borderWidth ?? DEFAULT_OUTLINE_WIDTH;
 
   // --- Path Definition (Filled Shape Outline) ---
