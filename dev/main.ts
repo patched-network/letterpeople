@@ -49,6 +49,9 @@ const displayArea = document.getElementById(
 const animateMouthButton = document.getElementById(
   "animate-mouth-button",
 ) as HTMLButtonElement | null;
+const blinkButton = document.getElementById(
+  "blink-button",
+) as HTMLButtonElement | null;
 
 // --- State ---
 let currentText: string =
@@ -123,9 +126,7 @@ function renderLetters() {
     `${letterSize}px`,
   );
 
-  const textToRender = currentText.toUpperCase();
-
-  for (const char of textToRender) {
+  for (const char of currentText) {
     const wrapper = document.createElement("div");
     wrapper.className = "letter-wrapper";
 
@@ -187,7 +188,8 @@ function setupEventListeners() {
     !showAttachmentsCheckbox ||
     !sizeSlider ||
     !sizeValueDisplay ||
-    !animateMouthButton
+    !animateMouthButton ||
+    !blinkButton
   ) {
     console.error("One or more control inputs are missing!");
     return;
@@ -264,14 +266,17 @@ function setupEventListeners() {
 
   // Animate Mouth Button
   animateMouthButton.addEventListener("click", () => {
-    if (renderedInstances.length > 0) {
-      console.log("Animating mouth of first letter...");
-      renderedInstances[0].mouth.animateSpeak!({}).catch((err) =>
+    renderedInstances.forEach((i) => {
+      i.mouth.animateSpeak!({}).catch((err) =>
         console.error("Animation failed:", err),
       );
-    } else {
-      console.log("No letters rendered to animate.");
-    }
+    });
+  });
+
+  blinkButton.addEventListener("click", () => {
+    renderedInstances.forEach((i) => {
+      i.eyes.blink().catch((err) => console.error("Blink failed:", err));
+    });
   });
 }
 
