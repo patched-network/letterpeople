@@ -1,5 +1,9 @@
 // src/attachments/mouth.ts
 
+import type { Point } from "../types"; // For attachmentCoord
+import type { MouthAttachment, AttachmentAnimationOptions } from "./types"; // Import from the new attachment types file
+import { animate, JSAnimation } from "animejs";
+
 const svgNS = "http://www.w3.org/2000/svg";
 
 // Helper function for linear interpolation
@@ -169,4 +173,221 @@ export function createMorphingMouth(
   group.style.transformOrigin = `${x}px ${y}px`;
 
   return group;
+}
+
+// --- Mouth Controller Implementation ---
+class MouthControllerImpl implements MouthAttachment {
+  readonly type = "mouth";
+  public element: SVGGElement; // The <g> element created by createMorphingMouth
+  private _currentParams: MouthParameters;
+  private _appearanceOptions?: MouthAppearanceOptions;
+  private _attachmentCoord: Point; // Original attachment point for re-creation/updates
+  private _isVisibleState: boolean = true;
+  private _currentAnimation: AnimeInstance | null = null;
+
+  constructor(
+    svgGroup: SVGGElement,
+    initialParams: MouthParameters,
+    appearanceOptions: MouthAppearanceOptions | undefined,
+    attachmentCoord: Point,
+  ) {
+    this.element = svgGroup;
+    this._currentParams = { ...initialParams }; // Store a copy
+    this._appearanceOptions = appearanceOptions;
+    this._attachmentCoord = attachmentCoord;
+    // Assume visible by default if a controller is created for an existing element
+  }
+
+  async updateShape(
+    params: Partial<MouthParameters>,
+    animOptions?: AttachmentAnimationOptions,
+  ): Promise<void> {
+    this.stopAnimations(); // Stop any ongoing shape animation
+
+    const oldParams = { ...this._currentParams };
+    const newParams: MouthParameters = { ...this._currentParams, ...params };
+
+    // Update internal state immediately for getCurrentShapeParams
+    this._currentParams = { ...newParams };
+
+    if (animOptions && animOptions.duration && animOptions.duration > 0) {
+      const animationDefaults = {
+        duration: 300,
+        easing: "easeInOutQuad",
+        ...animOptions, // User options override defaults
+      };
+
+      const tweenState = { ...oldParams }; // Start tween from old state
+
+      this._currentAnimation = animate({
+        targets: tweenState,
+        ...newParams, // Tween towards all keys in newParams
+        duration: animationDefaults.duration,
+        easing: animationDefaults.easing,
+        delay: animationDefaults.delay,
+        update: () => {
+          const newPathD = createMorphingMouth(
+            this._attachmentCoord.x,
+            this._attachmentCoord.y,
+            tweenState as MouthParameters, // Use the live tweened parameters
+            this._appearanceOptions,
+          )
+            .querySelector("path")
+            ?.getAttribute("d");
+
+          const currentPathEl = this.element.querySelector("path");
+          if (currentPathEl && newPathD) {
+            currentPathEl.setAttribute("d", newPathD);
+          }
+        },
+        complete: () => {
+          this._currentAnimation = null;
+          // Ensure final state is perfectly set
+          const finalPathD = createMorphingMouth(
+            this._attachmentCoord.x,
+            this._attachmentCoord.y,
+            this._currentParams, // Use the definitive _currentParams
+            this._appearanceOptions,
+          )
+            .querySelector("path")
+            ?.getAttribute("d");
+          const currentPathEl = this.element.querySelector("path");
+          if (currentPathEl && finalPathD) {
+            currentPathEl.setAttribute("d", finalPathD);
+          }
+        },
+        autoplay: true,
+      });
+      return this._currentAnimation.finished;
+    } else {
+      // No animation, re-render the path directly
+      const newMouthGroupContent = createMorphingMouth(
+        this._attachmentCoord.x,
+        this._attachmentCoord.y,
+        this._currentParams,
+        this._appearanceOptions,
+      );
+      // Replace the content of the existing group, not the group itself
+      this.element.innerHTML = newMouthGroupContent.innerHTML;
+      // Ensure transform origin is preserved/re-applied if createMorphingMouth sets it
+      this.element.style.transformOrigin =
+        newMouthGroupContent.style.transformOrigin;
+      return Promise.resolve();
+    }
+  }
+
+  getCurrentShapeParams(): MouthParameters {
+    return { ...this._currentParams }; // Return a copy
+  }
+
+  async show(options?: AttachmentAnimationOptions): Promise<void> {
+    this.stopAnimations(); // Stop other animations if any
+    this._isVisibleState = true;
+    this.element.style.display = ""; // Or use a class for visibility
+
+    if (options?.duration && options.duration > 0) {
+      // this._currentAnimation = anime({
+      //   targets: this.element,
+      //   opacity: [this.element.style.opacity || "0", 1], // Animate from current opacity
+      //   duration: options.duration,
+      //   easing: options.easing ?? "easeOutQuad",
+      //   delay: options.delay,
+      //   complete: () => {
+      //     this._currentAnimation = null;
+      //   },
+      // });
+      return this._currentAnimation.finished;
+    } else {
+      this.element.style.opacity = "1";
+      return Promise.resolve();
+    }
+  }
+
+  async hide(options?: AttachmentAnimationOptions): Promise<void> {
+    this.stopAnimations();
+    this._isVisibleState = false;
+
+    if (options?.duration && options.duration > 0) {
+      // this._currentAnimation = anime({
+      //   targets: this.element,
+      //   opacity: [this.element.style.opacity || "1", 0], // Animate from current opacity
+      //   duration: options.duration,
+      //   easing: options.easing ?? "easeInQuad",
+      //   delay: options.delay,
+      //   complete: () => {
+      //     this.element.style.display = "none"; // Hide after animation
+      //     this._currentAnimation = null;
+      //   },
+      // });
+      return this._currentAnimation.finished;
+    } else {
+      this.element.style.opacity = "0";
+      this.element.style.display = "none";
+      return Promise.resolve();
+    }
+  }
+
+  isVisible(): boolean {
+    // Check both internal state and actual display style
+    return this._isVisibleState && this.element.style.display !== "none";
+  }
+
+  toString(): string {
+    return `MouthAttachment: visible=${this.isVisible()}, params=${JSON.stringify(this._currentParams)}`;
+  }
+
+  // Example specific animation
+  async animateSpeak(speakOptions?: AttachmentAnimationOptions): Promise<void> {
+    this.stopAnimations();
+    const originalParams = this.getCurrentShapeParams();
+    const openParams = {
+      ...originalParams,
+      openness: clamp(originalParams.openness + 0.4, 0, 1),
+    }; // Open a bit more
+    const duration = speakOptions?.duration ?? 200; // Total duration for speak pulse
+
+    // Animate to open
+    await this.updateShape(openParams, {
+      ...speakOptions,
+      duration: duration * 0.4,
+    });
+    // Animate back to original
+    await this.updateShape(originalParams, {
+      ...speakOptions,
+      duration: duration * 0.6,
+    });
+  }
+
+  isAnimating?(): boolean {
+    return this._currentAnimation !== null && !this._currentAnimation.completed;
+  }
+
+  stopAnimations?(): void {
+    if (this._currentAnimation) {
+      // anime.remove(this.element); // Remove animations targeted at the element (for show/hide)
+      // For parameter tweens, we need to stop the specific anime instance
+      this._currentAnimation.pause(); // Pause it
+      // It's tricky to "remove" a JS-driven animation like the parameter tween
+      // without more complex management. Pausing and nulling is a start.
+      this._currentAnimation = null;
+    }
+  }
+}
+
+/**
+ * Factory function to create a MouthController instance.
+ * This is what will be imported by `index.ts`.
+ */
+export function createMorphingMouthController(
+  svgGroup: SVGGElement,
+  initialParams: MouthParameters,
+  appearanceOptions: MouthAppearanceOptions | undefined,
+  attachmentCoord: Point,
+): MouthAttachment {
+  return new MouthControllerImpl(
+    svgGroup,
+    initialParams,
+    appearanceOptions,
+    attachmentCoord,
+  );
 }
