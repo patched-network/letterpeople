@@ -23,7 +23,13 @@ const letterRenderers: {
 };
 
 import { createEye } from "./attachments/eye";
-// import { createMouth } from './attachments/mouth'; // Assuming this exists
+import {
+  createMorphingMouth,
+  createMouth,
+  MouthAppearanceOptions,
+  MouthOptions,
+  MouthParameters,
+} from "./attachments/mouth";
 
 export function createLetter(
   letter: string,
@@ -67,26 +73,33 @@ export function createLetter(
       attachmentElements.rightEye = rightEyeEl;
     }
     if (attachmentCoords.mouth) {
-      // const mouthOptions = { ... };
-      // const mouthEl = createMouth(attachmentCoords.mouth.x, attachmentCoords.mouth.y, mouthOptions);
-      // svg.appendChild(mouthEl);
-      // attachmentElements.mouth = mouthEl;
-      // Placeholder: Add a simple circle for the mouth for now
-      const mouthEl = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "g",
+      // Define initial dynamic parameters for the mouth shape
+      const mouthParams: MouthParameters = {
+        openness: 0, // Start as a curve (not open)
+        mood: 0, // Start slightly smiling (0=frown, 0.5=neutral, 1=smile)
+      };
+
+      // Define static appearance options
+      // These could potentially be overridden by values in the main 'options: LetterOptions'
+      // if we add corresponding properties there (e.g., options.mouthWidth)
+      const appearanceOptions: MouthAppearanceOptions = {
+        // Let's use the defaults defined in createMorphingMouth for now
+        // width: options?.mouthWidth, // Example if LetterOptions had mouthWidth
+        // fillColor: options?.mouthFillColor,
+      };
+
+      // Create the mouth element using the morphing function
+      const mouthEl = createMorphingMouth(
+        attachmentCoords.mouth.x,
+        attachmentCoords.mouth.y,
+        mouthParams,
+        appearanceOptions,
       );
-      const mouthCircle = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "circle",
-      );
-      mouthCircle.setAttribute("cx", String(attachmentCoords.mouth.x));
-      mouthCircle.setAttribute("cy", String(attachmentCoords.mouth.y));
-      mouthCircle.setAttribute("r", "4"); // Example size
-      mouthCircle.setAttribute("fill", "black");
-      mouthEl.appendChild(mouthCircle);
-      mouthEl.setAttribute("class", "letter-attachment letter-mouth");
+
+      // Append the mouth group to the main SVG
       svg.appendChild(mouthEl);
+
+      // Store the reference to the mouth group
       attachmentElements.mouth = mouthEl;
     }
     // ... create/append other default attachments ...
