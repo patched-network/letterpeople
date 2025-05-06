@@ -17,9 +17,9 @@ export interface Point {
 export interface LetterOptions {
   // Base letter appearance
   color?: string;
+  lineWidth?: number;
   borderColor?: string;
   borderWidth?: number;
-  lineWidth?: number;
   style?: "sans-serif" | "serif";
 
   // --- Attachment Options ---
