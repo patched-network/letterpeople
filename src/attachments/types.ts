@@ -84,7 +84,7 @@ export interface MouthAttachment extends BaseAttachment {
   getCurrentShapeParams(): MouthParameters;
 
   // Specific animation like speaking
-  animateSpeak?(speakOptions?: AnimationParams): Promise<void>;
+  animateSpeak(speakOptions?: AnimationParams): Promise<void>;
 }
 
 export interface EyesAttachment {
