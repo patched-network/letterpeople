@@ -1,15 +1,37 @@
 {
   "name": "letterpeople",
   "version": "0.0.1",
+  "description": "A TypeScript library for creating animated letter characters with facial features",
   "main": "./dist/letterpeople.umd.js",
   "module": "./dist/letterpeople.es.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "packageManager": "yarn@4.6.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:demo": "vite build --config vite.config.demo.ts"
+    "build:demo": "vite build --config vite.config.demo.ts",
+    "prepublishOnly": "yarn build"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patched-network/letterpeople.git"
+  },
+  "keywords": [
+    "animation",
+    "typography",
+    "svg",
+    "interactive",
+    "letters"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/patched-network/letterpeople/issues"
+  },
+  "homepage": "https://github.com/patched-network/letterpeople#readme",
   "dependencies": {
     "animejs": "^4.0.2"
   },
