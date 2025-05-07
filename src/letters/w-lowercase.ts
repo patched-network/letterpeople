@@ -71,9 +71,9 @@ function renderW_lowercase(
   // Points for the "top" contour and outer edges
   const p1 = { x: 0, y: y_top_char }; // Top-left of char
   const p2 = { x: T, y: y_top_char }; // Top-left, inner edge of left stem's top
-  const p3 = { x: quarter, y: valleyY_abs }; // First valley point
+  const p3 = { x: Math.max(quarter, p2.x), y: valleyY_abs }; // First valley point
   const p4_peak_center = { x: char_width / 2, y: peakY_abs }; // Middle peak, top center
-  const p5 = { x: 3 * quarter, y: valleyY_abs }; // Second valley point
+  const p5 = { x: Math.min(3 * quarter, char_width - T), y: valleyY_abs }; // Second valley point
   const p6 = { x: char_width - T, y: y_top_char }; // Top-right, inner edge of right stem's top
   const p7 = { x: char_width, y: y_top_char }; // Top-right of char
 
@@ -90,8 +90,8 @@ function renderW_lowercase(
     `M ${p1.x.toFixed(3)} ${p1.y.toFixed(3)}`, // Start at top-left
     `H ${p2.x.toFixed(3)}`, // Across to inner edge of left stem
     `L ${p3.x.toFixed(3)} ${p3.y.toFixed(3)}`, // Down-right to first valley point
-    `L ${(p4_peak_center.x - T / 2).toFixed(3)} ${p4_peak_center.y.toFixed(3)}`, // Up-right to middle peak bezel (left)
-    `L ${(p4_peak_center.x + T / 2).toFixed(3)} ${p4_peak_center.y.toFixed(3)}`, // Across middle peak bezel
+    `L ${(p4_peak_center.x - T / 3).toFixed(3)} ${p4_peak_center.y.toFixed(3)}`, // Up-right to middle peak bezel (left)
+    `L ${(p4_peak_center.x + T / 3).toFixed(3)} ${p4_peak_center.y.toFixed(3)}`, // Across middle peak bezel
     `L ${p5.x.toFixed(3)} ${p5.y.toFixed(3)}`, // Down-right to second valley point
     `L ${p6.x.toFixed(3)} ${p6.y.toFixed(3)}`, // Up-right to inner edge of right stem
     `H ${p7.x.toFixed(3)}`, // Across to top-right corner
