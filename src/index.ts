@@ -31,13 +31,35 @@ import {
 } from "./attachments/mouth";
 
 // Import letter implementations
+import A from "./letters/A-uppercase";
+import c from "./letters/c-lowercase";
+import E from "./letters/E-uppercase";
+import F from "./letters/F-uppercase";
+import H from "./letters/H-uppercase";
+import i from "./letters/i-lowercase";
+import I from "./letters/I-uppercase";
 import L from "./letters/L-uppercase";
+import l from "./letters/l-lowercase";
+import O from "./letters/O-uppercase";
+import Q from "./letters/Q-uppercase";
+import T from "./letters/T-uppercase";
 
 // Map letters to their rendering functions
 const letterRenderers: {
   [key: string]: (options?: LetterOptions) => InternalLetterRenderResult;
 } = {
+  A: A,
+  c: c,
+  E: E,
+  F: F,
+  i: i,
+  I: I,
+  H: H,
   L: L,
+  l: l,
+  O: O,
+  Q: Q,
+  T: T,
 };
 
 // Default parameters for the mouth if not provided (still relevant for initial creation)
