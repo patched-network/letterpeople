@@ -33,6 +33,7 @@ import {
 // Import letter implementations
 import A from "./letters/A-uppercase";
 import c from "./letters/c-lowercase";
+import C from "./letters/C-uppercase";
 import E from "./letters/E-uppercase";
 import F from "./letters/F-uppercase";
 import H from "./letters/H-uppercase";
@@ -41,8 +42,21 @@ import I from "./letters/I-uppercase";
 import L from "./letters/L-uppercase";
 import l from "./letters/l-lowercase";
 import O from "./letters/O-uppercase";
+import D from "./letters/D-uppercase";
+import M from "./letters/M-uppercase";
+import N from "./letters/N-uppercase";
+import P from "./letters/P-uppercase";
+import W from "./letters/W-uppercase";
+import X from "./letters/X-uppercase";
+import Y from "./letters/Y-uppercase";
+import o from "./letters/o-lowercase";
 import Q from "./letters/Q-uppercase";
+import R from "./letters/R-uppercase";
 import T from "./letters/T-uppercase";
+import V from "./letters/V-uppercase";
+import v from "./letters/v-lowercase";
+import w from "./letters/w-lowercase";
+import x from "./letters/x-lowercase";
 
 // Map letters to their rendering functions
 const letterRenderers: {
@@ -50,16 +64,30 @@ const letterRenderers: {
 } = {
   A: A,
   c: c,
+  C: C,
   E: E,
   F: F,
   i: i,
   I: I,
   H: H,
+  D: D,
   L: L,
+  M: M,
+  N: N,
+  P: P,
+  W: W,
+  X: X,
+  Y: Y,
   l: l,
   O: O,
+  o: o,
   Q: Q,
+  R: R,
   T: T,
+  V: V,
+  v: v,
+  w: w,
+  x: x,
 };
 
 // Default parameters for the mouth if not provided (still relevant for initial creation)

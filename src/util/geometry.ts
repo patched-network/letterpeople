@@ -1,5 +1,4 @@
 // letterpeople/src/util/geometry.ts
-import type { Point } from "../types";
 
 // --- Constants ---
 const EPSILON = 1e-9; // A small epsilon for floating point comparisons
