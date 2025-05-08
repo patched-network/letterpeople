@@ -85,11 +85,6 @@ function renderY_uppercase(
   svg.appendChild(pathEl);
 
   // --- Attachment Points Calculation ---
-  // Calculate midpoints of the upper diagonals for eyes
-  const leftArmMidX = (p2.x + p3.x) / 2;
-  const leftArmMidY = (p2.y + p3.y) / 2;
-  const rightArmMidX = (p3.x + p4.x) / 2;
-  const rightArmMidY = (p3.y + p4.y) / 2;
 
   const attachments: AttachmentList = {
     // Eyes on the upper diagonals

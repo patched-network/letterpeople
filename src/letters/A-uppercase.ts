@@ -5,6 +5,12 @@ import type {
   Point,
   AttachmentList,
 } from "../types";
+import {
+  getLineIntersection,
+  getParallelLineSegment,
+  midpoint,
+  Line,
+} from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 80;
@@ -14,64 +20,7 @@ const DEFAULT_OUTLINE_WIDTH = 2;
 const DEFAULT_APEX_FLAT_WIDTH_FACTOR = 1; // Factor of limbThickness for how flat the top peak is
 const DEFAULT_CROSSBAR_Y_FACTOR = 0.68; // Crossbar vertical position (0=top, 1=bottom)
 
-// --- Geometry Helper Functions ---
-// ... (getIntersectionPoint and getParallelLine remain the same)
-interface Line {
-  p1: Point;
-  p2: Point;
-}
-
-/** Calculates the intersection point of two lines. */
-function getIntersectionPoint(line1: Line, line2: Line): Point | null {
-  const { p1: l1p1, p2: l1p2 } = line1;
-  const { p1: l2p1, p2: l2p2 } = line2;
-
-  const d =
-    (l1p1.x - l1p2.x) * (l2p1.y - l2p2.y) -
-    (l1p1.y - l1p2.y) * (l2p1.x - l2p2.x);
-  if (d === 0) return null; // Parallel or coincident
-
-  const t =
-    ((l1p1.x - l2p1.x) * (l2p1.y - l2p2.y) -
-      (l1p1.y - l2p1.y) * (l2p1.x - l2p2.x)) /
-    d;
-  const u =
-    -(
-      (l1p1.x - l1p2.x) * (l1p1.y - l2p1.y) -
-      (l1p1.y - l1p2.y) * (l1p1.x - l2p1.x)
-    ) / d;
-
-  return {
-    x: l1p1.x + t * (l1p2.x - l1p1.x),
-    y: l1p1.y + t * (l1p2.y - l1p1.y),
-  };
-}
-
-/** Creates a line parallel to p1-p2, offset by distance. 'side' determines offset direction. */
-function getParallelLine(
-  p1: Point,
-  p2: Point,
-  distance: number,
-  side: "left" | "right",
-): Line {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const L = Math.sqrt(dx * dx + dy * dy);
-  if (L === 0) return { p1: { ...p1 }, p2: { ...p2 } };
-
-  let nx = -dy / L;
-  let ny = dx / L;
-
-  if (side === "right") {
-    nx = -nx;
-    ny = -ny;
-  }
-
-  return {
-    p1: { x: p1.x + distance * nx, y: p1.y + distance * ny },
-    p2: { x: p2.x + distance * nx, y: p2.y + distance * ny },
-  };
-}
+// Use geometry utilities imported from "../util/geometry"
 
 /**
  * @internal
@@ -110,8 +59,7 @@ function renderA_uppercase(
   const crossbarTopY = crossbarCenterY - limbT / 2;
   const crossbarBottomY = crossbarCenterY + limbT / 2;
 
-  const lineOuterLeftLeg: Line = { p1: OLT, p2: OLB };
-  const lineOuterRightLeg: Line = { p1: ORT, p2: ORB };
+  // Define lines for geometry calculations
 
   const lineCrossbarTop: Line = {
     p1: { x: 0, y: crossbarTopY },
@@ -127,27 +75,27 @@ function renderA_uppercase(
     p2: { x: W, y: OLT.y + limbT },
   };
 
-  const lineInnerLeftLeg = getParallelLine(OLT, OLB, limbT, "right");
-  const lineInnerRightLeg = getParallelLine(ORT, ORB, limbT, "left");
+  const lineInnerLeftLeg = getParallelLineSegment(OLT, OLB, limbT, "right");
+  const lineInnerRightLeg = getParallelLineSegment(ORT, ORB, limbT, "left");
 
   // --- Calculate Intersection Points for the Path ---
 
   // Points calculated at y = limbT (near A's apex)
-  const points_near_apex_L = getIntersectionPoint(
+  const points_near_apex_L = getLineIntersection(
     lineInnerLeftLeg,
     lineApexTopOffset,
   );
-  const points_near_apex_R = getIntersectionPoint(
+  const points_near_apex_R = getLineIntersection(
     lineInnerRightLeg,
     lineApexTopOffset,
   );
 
   // Points calculated at y = crossbarTopY (top edge of crossbar)
-  const points_on_crossbar_L = getIntersectionPoint(
+  const points_on_crossbar_L = getLineIntersection(
     lineInnerLeftLeg,
     lineCrossbarTop,
   );
-  const points_on_crossbar_R = getIntersectionPoint(
+  const points_on_crossbar_R = getLineIntersection(
     lineInnerRightLeg,
     lineCrossbarTop,
   );
@@ -174,29 +122,26 @@ function renderA_uppercase(
   // These will define the TOP (narrower) edge of the hole
   const holeTopL = points_on_crossbar_L;
   const holeTopR = points_on_crossbar_R;
-  const holeTop: Point = { x: (holeTopL.x + holeTopR.x) / 2, y: holeTopL.y };
+  const holeTop = midpoint(holeTopL, holeTopR);
 
   // These will define the BOTTOM (wider) edge of the hole
   const holeBottomL = points_near_apex_L;
   const holeBottomR = points_near_apex_R;
-  const holeBottom: Point = {
-    x: (holeBottomL.x + holeBottomR.x) / 2,
-    y: holeBottomL.y,
-  };
+  const holeBottom = midpoint(holeBottomL, holeBottomR);
 
-  const P_inner_L_crossbar_B = getIntersectionPoint(
+  const P_inner_L_crossbar_B = getLineIntersection(
     lineInnerLeftLeg,
     lineCrossbarBottom,
   );
-  const P_inner_R_crossbar_B = getIntersectionPoint(
+  const P_inner_R_crossbar_B = getLineIntersection(
     lineInnerRightLeg,
     lineCrossbarBottom,
   );
-  const P_inner_L_vb_B = getIntersectionPoint(
+  const P_inner_L_vb_B = getLineIntersection(
     lineInnerLeftLeg,
     lineViewboxBottom,
   );
-  const P_inner_R_vb_B = getIntersectionPoint(
+  const P_inner_R_vb_B = getLineIntersection(
     lineInnerRightLeg,
     lineViewboxBottom,
   );

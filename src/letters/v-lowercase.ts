@@ -5,7 +5,7 @@ import type {
   Point,
   AttachmentList,
 } from "../types";
-import { midpoint } from "../util/geometry";
+import { midpoint, getLineIntersection, getParallelLineSegment, Line } from "../util/geometry";
 import {
   VIEWBOX_HEIGHT as GLOBAL_VIEWBOX_HEIGHT,
   EFFECTIVE_LOWERCASE_HEIGHT,
@@ -24,49 +24,7 @@ const DEFAULT_HORIZONTAL_SPREAD_FACTOR = 0.9; // v is 90% of its own width at th
 const O_BOTTOM_PADDING_FACTOR = 0.05;
 
 // --- Geometry Helper Functions (copied from V-uppercase.ts) ---
-interface Line {
-  p1: Point;
-  p2: Point;
-}
-
-function getIntersectionPoint(line1: Line, line2: Line): Point | null {
-  const { p1: l1p1, p2: l1p2 } = line1;
-  const { p1: l2p1, p2: l2p2 } = line2;
-  const d =
-    (l1p1.x - l1p2.x) * (l2p1.y - l2p2.y) -
-    (l1p1.y - l1p2.y) * (l2p1.x - l2p2.x);
-  if (d === 0) return null;
-  const t =
-    ((l1p1.x - l2p1.x) * (l2p1.y - l2p2.y) -
-      (l1p1.y - l2p1.y) * (l2p1.x - l2p2.x)) /
-    d;
-  return {
-    x: l1p1.x + t * (l1p2.x - l1p1.x),
-    y: l1p1.y + t * (l1p2.y - l1p1.y),
-  };
-}
-
-function getParallelLine(
-  p1: Point,
-  p2: Point,
-  distance: number,
-  side: "left" | "right",
-): Line {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const L = Math.sqrt(dx * dx + dy * dy);
-  if (L === 0) return { p1: { ...p1 }, p2: { ...p2 } };
-  let nx = -dy / L;
-  let ny = dx / L;
-  if (side === "right") {
-    nx = -nx;
-    ny = -ny;
-  }
-  return {
-    p1: { x: p1.x + distance * nx, y: p1.y + distance * ny },
-    p2: { x: p2.x + distance * nx, y: p2.y + distance * ny },
-  };
-}
+// Using geometry utilities from "../util/geometry"
 
 /**
  * @internal
@@ -118,8 +76,8 @@ function renderV_lowercase(
   const lineOuterRightLeg: Line = { p1: OTR_char, p2: OBA_char };
 
   // Inner leg lines
-  const lineInnerLeftLeg = getParallelLine(OTL_char, OBA_char, limbT, "right");
-  const lineInnerRightLeg = getParallelLine(OTR_char, OBA_char, limbT, "left");
+  const lineInnerLeftLeg = getParallelLineSegment(OTL_char, OBA_char, limbT, "right");
+  const lineInnerRightLeg = getParallelLineSegment(OTR_char, OBA_char, limbT, "left");
 
   // Top inner horizontal line for the character's body
   const lineTopInnerHorizontal_char: Line = {
@@ -128,15 +86,15 @@ function renderV_lowercase(
   };
 
   // Calculate intersection points for the character body
-  const ITL_char = getIntersectionPoint(
+  const ITL_char = getLineIntersection(
     lineInnerLeftLeg,
     lineTopInnerHorizontal_char,
   );
-  const ITR_char = getIntersectionPoint(
+  const ITR_char = getLineIntersection(
     lineInnerRightLeg,
     lineTopInnerHorizontal_char,
   );
-  const IBA_char = getIntersectionPoint(lineInnerLeftLeg, lineInnerRightLeg);
+  const IBA_char = getLineIntersection(lineInnerLeftLeg, lineInnerRightLeg);
 
   if (!ITL_char || !ITR_char || !IBA_char) {
     const msg =

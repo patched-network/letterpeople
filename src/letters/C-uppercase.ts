@@ -4,6 +4,7 @@ import type {
   InternalLetterRenderResult,
   AttachmentList,
 } from "../types";
+import { ellipticalArcPoint, midpoint } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 80; // Consistent with 'O'
@@ -61,22 +62,10 @@ function renderC_uppercase(
   const angleBottomOpenRad = (openingAngleDeg * Math.PI) / 180;
 
   // Calculate key points for the path
-  const pOuterTopOpen = {
-    x: cx + outerRx * Math.cos(angleTopOpenRad),
-    y: cy + outerRy * Math.sin(angleTopOpenRad),
-  };
-  const pOuterBottomOpen = {
-    x: cx + outerRx * Math.cos(angleBottomOpenRad),
-    y: cy + outerRy * Math.sin(angleBottomOpenRad),
-  };
-  const pInnerTopOpen = {
-    x: cx + innerRx * Math.cos(angleTopOpenRad),
-    y: cy + innerRy * Math.sin(angleTopOpenRad),
-  };
-  const pInnerBottomOpen = {
-    x: cx + innerRx * Math.cos(angleBottomOpenRad),
-    y: cy + innerRy * Math.sin(angleBottomOpenRad),
-  };
+  const pOuterTopOpen = ellipticalArcPoint(cx, cy, outerRx, outerRy, angleTopOpenRad);
+  const pOuterBottomOpen = ellipticalArcPoint(cx, cy, outerRx, outerRy, angleBottomOpenRad);
+  const pInnerTopOpen = ellipticalArcPoint(cx, cy, innerRx, innerRy, angleTopOpenRad);
+  const pInnerBottomOpen = ellipticalArcPoint(cx, cy, innerRx, innerRy, angleBottomOpenRad);
 
   // Path data string:
   // 1. Move to outer top of opening.
@@ -113,18 +102,12 @@ function renderC_uppercase(
     // Left arm on the far left of the C's curve
     leftArm: { x: cx - outerRx - outlineWidth / 2, y: cy },
     // Right arm in the middle of the top opening's thickness
-    rightArm: {
-      x: (pOuterTopOpen.x + pInnerTopOpen.x) / 2,
-      y: (pOuterTopOpen.y + pInnerTopOpen.y) / 2,
-    },
+    rightArm: midpoint(pOuterTopOpen, pInnerTopOpen),
 
     // Left leg towards the bottom-left of the C's curve
     leftLeg: { x: cx - outerRx * 0.5, y: cy + outerRy - outlineWidth / 2 },
     // Right leg in the middle of the bottom opening's thickness
-    rightLeg: {
-      x: (pOuterBottomOpen.x + pInnerBottomOpen.x) / 2,
-      y: (pOuterBottomOpen.y + pInnerBottomOpen.y) / 2,
-    },
+    rightLeg: midpoint(pOuterBottomOpen, pInnerBottomOpen),
   };
 
   return {
