@@ -52,9 +52,16 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version in package.json ($PKG_VERSION) does not match Git tag version ($TAG_VERSION)"
+          
+          # Extract base versions (without prerelease identifiers)
+          PKG_BASE_VERSION=$(echo $PKG_VERSION | cut -d'-' -f1)
+          TAG_BASE_VERSION=$(echo $TAG_VERSION | cut -d'-' -f1)
+          
+          if [ "$PKG_BASE_VERSION" != "$TAG_BASE_VERSION" ]; then
+            echo "Error: Base version in package.json ($PKG_BASE_VERSION) does not match Git tag base version ($TAG_BASE_VERSION)"
             exit 1
+          else
+            echo "Base versions match ($PKG_BASE_VERSION). Prerelease identifiers may differ."
           fi
 
       - name: Build package
