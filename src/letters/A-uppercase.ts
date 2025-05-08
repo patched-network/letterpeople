@@ -2,10 +2,10 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
 import {
+  Point,
   getLineIntersection,
   getParallelLineSegment,
   midpoint,

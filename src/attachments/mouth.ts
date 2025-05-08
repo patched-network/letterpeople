@@ -1,5 +1,5 @@
-import type { Point } from "../types"; // For attachmentCoord
 import { BaseController } from "./BaseController";
+import type { Point } from "../util/geometry";
 import type { MouthAttachment } from "./types";
 import { animate, AnimationParams, JSAnimation, utils } from "animejs";
 

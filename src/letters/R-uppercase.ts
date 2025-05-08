@@ -2,10 +2,9 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
-import { getLineIntersection, getParallelLineSegment, Line, midpoint } from "../util/geometry";
+import { getLineIntersection, getParallelLineSegment, Line, midpoint, Point } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 75;

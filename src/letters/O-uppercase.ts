@@ -2,9 +2,9 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point, // Included for consistency, though not directly used in this file's logic beyond types
   AttachmentList,
 } from "../types";
+import { Point } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 80; // Consistent with 'E', 'H'

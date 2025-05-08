@@ -3,8 +3,8 @@ import type {
   LetterOptions,
   InternalLetterRenderResult,
   AttachmentList,
-  Point,
 } from "../types";
+import { Point } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 80;

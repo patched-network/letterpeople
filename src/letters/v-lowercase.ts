@@ -2,10 +2,9 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
-import { midpoint, getLineIntersection, getParallelLineSegment, Line } from "../util/geometry";
+import { midpoint, getLineIntersection, getParallelLineSegment, Line, Point } from "../util/geometry";
 import {
   VIEWBOX_HEIGHT as GLOBAL_VIEWBOX_HEIGHT,
   EFFECTIVE_LOWERCASE_HEIGHT,

@@ -2,9 +2,9 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
+import type { Point } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 40; // Narrower than uppercase L

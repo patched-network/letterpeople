@@ -10,18 +10,14 @@ import type {
   MouthAppearanceOptions,
 } from "./attachments/mouth"; // Keep these for LetterOptions
 
+import type { Point } from "./util/geometry";
+
 // Re-export for convenience if needed by consumers of the library for options
 export type { MouthParameters, MouthAppearanceOptions };
 
 // Import options for individual attachments if they are directly configurable via LetterOptions
 // For example, if EyeOptions were still used directly in LetterOptions:
 // import type { EyeOptions } from "./attachments/eye";
-
-// Basic point type
-export interface Point {
-  x: number;
-  y: number;
-}
 
 // Options for creating the base letter shape AND its attachments
 export interface LetterOptions {
