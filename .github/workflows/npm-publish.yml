@@ -68,7 +68,26 @@ jobs:
         run: yarn build
 
       - name: Publish to NPM
-        run: npm publish
+        run: |
+          TAG_VERSION=${{ steps.extract_version.outputs.VERSION }}
+          # Update package.json version to match tag version
+          if [[ "$TAG_VERSION" == *"-"* ]]; then
+            # This is a prerelease version (contains hyphen)
+            echo "Prerelease version detected: $TAG_VERSION"
+            # Update package.json with the exact tag version
+            npm version $TAG_VERSION --no-git-tag-version
+            
+            # Extract prerelease identifier (alpha, beta, etc.)
+            # Match everything after first hyphen up to next dot or end of string
+            PRERELEASE_ID=$(echo $TAG_VERSION | sed -E 's/.*-([^.]+).*/\1/')
+            echo "Using NPM dist-tag: $PRERELEASE_ID"
+            
+            # Publish with the prerelease tag
+            npm publish --tag $PRERELEASE_ID
+          else
+            # This is a regular release, publish as latest
+            npm publish
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
