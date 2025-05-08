@@ -1,13 +1,13 @@
 import type {
   LetterInstance,
   // No longer need AttachmentElements from here
-  Point,
   // AnimationOptions, // Keep for future high-level methods
   LetterOptions,
   InternalLetterRenderResult,
   MouthParameters,
   MouthAppearanceOptions,
 } from "./types";
+import type { Point } from "./util/geometry";
 
 // Import the new attachment controller INTERFACES
 import type {

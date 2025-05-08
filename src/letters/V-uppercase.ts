@@ -2,9 +2,15 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
+import {
+  Point,
+  Line,
+  getLineIntersection,
+  getParallelLineSegment,
+  midpoint,
+} from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 80;
@@ -17,50 +23,7 @@ const DEFAULT_TOP_Y_OFFSET = 0; // Starts at the very top
 const DEFAULT_BOTTOM_Y_OFFSET = 0; // Apex reaches the very bottom
 const DEFAULT_HORIZONTAL_SPREAD_AT_TOP = VIEWBOX_WIDTH * 0.9; // V is 90% of viewBox width at the top
 
-// --- Geometry Helper Functions (re-used from A-uppercase.ts) ---
-interface Line {
-  p1: Point;
-  p2: Point;
-}
-
-function getIntersectionPoint(line1: Line, line2: Line): Point | null {
-  const { p1: l1p1, p2: l1p2 } = line1;
-  const { p1: l2p1, p2: l2p2 } = line2;
-  const d =
-    (l1p1.x - l1p2.x) * (l2p1.y - l2p2.y) -
-    (l1p1.y - l1p2.y) * (l2p1.x - l2p2.x);
-  if (d === 0) return null;
-  const t =
-    ((l1p1.x - l2p1.x) * (l2p1.y - l2p2.y) -
-      (l1p1.y - l2p1.y) * (l2p1.x - l2p2.x)) /
-    d;
-  return {
-    x: l1p1.x + t * (l1p2.x - l1p1.x),
-    y: l1p1.y + t * (l1p2.y - l1p1.y),
-  };
-}
-
-function getParallelLine(
-  p1: Point,
-  p2: Point,
-  distance: number,
-  side: "left" | "right",
-): Line {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const L = Math.sqrt(dx * dx + dy * dy);
-  if (L === 0) return { p1: { ...p1 }, p2: { ...p2 } };
-  let nx = -dy / L;
-  let ny = dx / L;
-  if (side === "right") {
-    nx = -nx;
-    ny = -ny;
-  }
-  return {
-    p1: { x: p1.x + distance * nx, y: p1.y + distance * ny },
-    p2: { x: p2.x + distance * nx, y: p2.y + distance * ny },
-  };
-}
+// Using imported geometry utilities from "../util/geometry"
 
 /**
  * @internal
@@ -103,12 +66,10 @@ function renderV_uppercase(
   const OBA: Point = { x: hCenter, y: bottomY }; // Outer Bottom Apex
 
   // Define lines for geometry calculations
-  const lineOuterLeftLeg: Line = { p1: OTL, p2: OBA };
-  const lineOuterRightLeg: Line = { p1: OTR, p2: OBA };
 
   // Inner leg lines (parallel to outer legs, offset inwards)
-  const lineInnerLeftLeg = getParallelLine(OTL, OBA, limbT, "right");
-  const lineInnerRightLeg = getParallelLine(OTR, OBA, limbT, "left");
+  const lineInnerLeftLeg = getParallelLineSegment(OTL, OBA, limbT, "right");
+  const lineInnerRightLeg = getParallelLineSegment(OTR, OBA, limbT, "left");
 
   // Top inner horizontal line (where inner legs meet the top thickness)
   const lineTopInnerHorizontal: Line = {
@@ -117,9 +78,9 @@ function renderV_uppercase(
   };
 
   // Calculate intersection points
-  const ITL = getIntersectionPoint(lineInnerLeftLeg, lineTopInnerHorizontal); // Inner Top Left
-  const ITR = getIntersectionPoint(lineInnerRightLeg, lineTopInnerHorizontal); // Inner Top Right
-  const IBA = getIntersectionPoint(lineInnerLeftLeg, lineInnerRightLeg); // Inner Bottom Apex
+  const ITL = getLineIntersection(lineInnerLeftLeg, lineTopInnerHorizontal); // Inner Top Left
+  const ITR = getLineIntersection(lineInnerRightLeg, lineTopInnerHorizontal); // Inner Top Right
+  const IBA = getLineIntersection(lineInnerLeftLeg, lineInnerRightLeg); // Inner Bottom Apex
 
   if (!ITL || !ITR || !IBA) {
     console.error(
@@ -162,7 +123,7 @@ function renderV_uppercase(
   // --- Attachment Points Calculation ---
   // Eyes on the upper part, spread based on inner top points
   const eyeY = topY + limbT * 1.5; // Position eyes somewhat below the top inner edge
-  const midUpperWidth = (ITR.x + ITL.x) / 2;
+  const midUpperWidth = midpoint(ITL, ITR).x;
 
   const attachments: AttachmentList = {
     leftEye: { x: midUpperWidth - (ITR.x - ITL.x) * 0.5, y: eyeY },
@@ -173,8 +134,8 @@ function renderV_uppercase(
 
     // Arms mid-height on the outer edges of the V
     // Approximate mid-point Y of the V's slanted edge
-    leftArm: { x: OTL.x - outlineW, y: (OTL.y + OBA.y) / 2 },
-    rightArm: { x: OTR.x + outlineW, y: (OTR.y + OBA.y) / 2 },
+    leftArm: { x: OTL.x - outlineW, y: midpoint(OTL, OBA).y },
+    rightArm: { x: OTR.x + outlineW, y: midpoint(OTR, OBA).y },
 
     // Legs near the bottom apex
     leftLeg: { x: OBA.x - limbT * 0.7, y: OBA.y - outlineW / 2 },

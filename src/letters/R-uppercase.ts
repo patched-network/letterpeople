@@ -2,9 +2,9 @@
 import type {
   LetterOptions,
   InternalLetterRenderResult,
-  Point,
   AttachmentList,
 } from "../types";
+import { getLineIntersection, getParallelLineSegment, Line, midpoint, Point } from "../util/geometry";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 75;
@@ -20,63 +20,7 @@ const W_BOWL_MAX_FACTOR = 0.95; // Bowl's rightmost extent as a factor of VIEWBO
 const LEG_SPINE_END_X_CLEARANCE_FACTOR = 0.5;
 const HOLE_INSET_FACTOR = 0.15; // Factor of limbThickness for padding inside the bowl hole
 
-// --- Geometry Helper Functions (copied from A-uppercase.ts / V-uppercase.ts) ---
-interface Line {
-  p1: Point;
-  p2: Point;
-}
-
-/** Calculates the intersection point of two lines. */
-function getIntersectionPoint(line1: Line, line2: Line): Point | null {
-  const { p1: l1p1, p2: l1p2 } = line1;
-  const { p1: l2p1, p2: l2p2 } = line2;
-
-  const d =
-    (l1p1.x - l1p2.x) * (l2p1.y - l2p2.y) -
-    (l1p1.y - l1p2.y) * (l2p1.x - l2p2.x);
-  if (d === 0) return null; // Parallel or coincident
-
-  const t =
-    ((l1p1.x - l2p1.x) * (l2p1.y - l2p2.y) -
-      (l1p1.y - l2p1.y) * (l2p1.x - l2p2.x)) /
-    d;
-  // const u =
-  //   -(
-  //     (l1p1.x - l1p2.x) * (l1p1.y - l2p1.y) -
-  //     (l1p1.y - l1p2.y) * (l1p1.x - l2p1.x)
-  //   ) / d;
-
-  return {
-    x: l1p1.x + t * (l1p2.x - l1p1.x),
-    y: l1p1.y + t * (l1p2.y - l1p1.y),
-  };
-}
-
-/** Creates a line parallel to p1-p2, offset by distance. 'side' determines offset direction. */
-function getParallelLine(
-  p1: Point,
-  p2: Point,
-  distance: number,
-  side: "left" | "right",
-): Line {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const L = Math.sqrt(dx * dx + dy * dy);
-  if (L === 0) return { p1: { ...p1 }, p2: { ...p2 } };
-
-  let nx = -dy / L; // Normal vector component (points "left" of p1->p2 vector)
-  let ny = dx / L;
-
-  if (side === "right") {
-    nx = -nx; // Flip normal to point "right"
-    ny = -ny;
-  }
-
-  return {
-    p1: { x: p1.x + distance * nx, y: p1.y + distance * ny },
-    p2: { x: p2.x + distance * nx, y: p2.y + distance * ny },
-  };
-}
+// Using geometry utilities from "../util/geometry"
 
 /**
  * @internal
@@ -136,13 +80,13 @@ function renderR_uppercase(
   const legSpineP1: Point = { x: spine_p1_x, y: spine_p1_y };
   const legSpineP2: Point = { x: spine_p2_x, y: spine_p2_y };
 
-  const outerLegEdge = getParallelLine(
+  const outerLegEdge = getParallelLineSegment(
     legSpineP1,
     legSpineP2,
     limbT / 2,
     "right",
   );
-  const innerLegEdge = getParallelLine(
+  const innerLegEdge = getParallelLineSegment(
     legSpineP1,
     legSpineP2,
     limbT / 2,
@@ -236,7 +180,7 @@ function renderR_uppercase(
     leftLeg: { x: limbT / 2, y: VIEWBOX_HEIGHT - outlineW / 2 },
     // Center right leg under the diagonal leg's foot
     rightLeg: {
-      x: (p_leg_outer_bottom.x + p_leg_inner_bottom.x) / 2,
+      x: midpoint(p_leg_outer_bottom, p_leg_inner_bottom).x,
       y: VIEWBOX_HEIGHT - outlineW / 2,
     },
   };
