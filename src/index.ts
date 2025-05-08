@@ -36,6 +36,7 @@ import c from "./letters/c-lowercase";
 import C from "./letters/C-uppercase";
 import E from "./letters/E-uppercase";
 import F from "./letters/F-uppercase";
+import G from "./letters/G-uppercase";
 import H from "./letters/H-uppercase";
 import i from "./letters/i-lowercase";
 import I from "./letters/I-uppercase";
@@ -52,6 +53,7 @@ import Y from "./letters/Y-uppercase";
 import o from "./letters/o-lowercase";
 import Q from "./letters/Q-uppercase";
 import R from "./letters/R-uppercase";
+import S from "./letters/S-uppercase";
 import T from "./letters/T-uppercase";
 import V from "./letters/V-uppercase";
 import v from "./letters/v-lowercase";
@@ -67,6 +69,7 @@ const letterRenderers: {
   C: C,
   E: E,
   F: F,
+  G: G,
   i: i,
   I: I,
   H: H,
@@ -83,6 +86,7 @@ const letterRenderers: {
   o: o,
   Q: Q,
   R: R,
+  S: S,
   T: T,
   V: V,
   v: v,
