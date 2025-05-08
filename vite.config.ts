@@ -30,9 +30,9 @@ export default defineConfig({
     },
     sourcemap: true, // Generate source maps for debugging
   },
-  // Configure dev server to use the 'dev' directory
+  // Configure dev server 
   server: {
-    open: "/dev/index.html", // Automatically open this file
+    open: true, // Automatically open the browser
   },
   resolve: {
     alias: {
@@ -40,4 +40,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Configure root directory for dev server
+  root: path.resolve(__dirname, "dev"),
 });
