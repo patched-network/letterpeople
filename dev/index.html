@@ -121,7 +121,11 @@
             <h3>Controls</h3>
             <label>
                 Text to Render:
-                <input type="text" id="text-input" value="L" />
+                <input
+                    type="text"
+                    id="text-input"
+                    value="ABCDEFGHIJKLMNOPQRSTUVWXYZLabcdefghijklmnopqrstuvwxyz"
+                />
             </label>
             <label>
                 Fill Color (options.color):
@@ -203,11 +207,52 @@
             </label>
 
             <hr />
+            <!-- Arm Controls -->
+            <h4>Arm Controls</h4>
+            <label>
+                Left Arm Angle:
+                <span class="range-value" id="left-arm-angle-value">150°</span>
+                <input
+                    type="range"
+                    id="left-arm-angle-slider"
+                    min="0"
+                    max="360"
+                    value="150"
+                    step="5"
+                />
+            </label>
+            <label>
+                Right Arm Angle:
+                <span class="range-value" id="right-arm-angle-value">30°</span>
+                <input
+                    type="range"
+                    id="right-arm-angle-slider"
+                    min="0"
+                    max="360"
+                    value="30"
+                    step="5"
+                />
+            </label>
+            <label>
+                Arm Length:
+                <span class="range-value" id="arm-length-value">15.0</span>
+                <input
+                    type="range"
+                    id="arm-length-slider"
+                    min="5"
+                    max="30"
+                    value="15"
+                    step="0.5"
+                />
+            </label>
+
+            <hr />
             <!-- Action Button -->
             <button id="animate-mouth-button" type="button">
                 Animate Mouths
             </button>
             <button id="blink-button" type="button">Blink</button>
+            <button id="wave-arms-button" type="button">Wave Arms</button>
         </div>
 
         <div id="letter-display-area">
