@@ -1,4 +1,4 @@
-// letterpeople/src/letters/J-uppercase.ts
+// letterpeople/src/letters/j-lowercase.ts
 import type {
   LetterOptions,
   InternalLetterRenderResult,
@@ -18,7 +18,6 @@ const VIEWBOX_WIDTH = 70;
 // Constants for the letter's appearance
 const DEFAULT_LIMB_THICKNESS = 10;
 const DEFAULT_OUTLINE_WIDTH = 1;
-const DEFAULT_DOT_DIAMETER = 32;
 
 /**
  * @internal
@@ -34,7 +33,9 @@ function renderJ_uppercase(
   // --- SVG Setup ---
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
+  // The lower case j is a special case for the view box definition, because it has
+  // both a descender and an ascendant piecs (the dot)
+  svg.setAttribute("viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT + 35}`);
   svg.setAttribute("class", "letter-base letter-J-uppercase");
 
   // --- Options Processing ---
@@ -42,6 +43,9 @@ function renderJ_uppercase(
   const fillColor = options?.color ?? "currentColor";
   const outlineColor = options?.borderColor ?? "black";
   const outlineWidth = options?.borderWidth ?? DEFAULT_OUTLINE_WIDTH;
+  const dotDiameter = options?.lineWidth
+    ? options.lineWidth * 1.6
+    : DEFAULT_DOT_DIAMETER;
 
   // --- Calculate Dimensions and Positions ---
   const W = VIEWBOX_WIDTH;
@@ -57,45 +61,36 @@ function renderJ_uppercase(
   // Left and right edges of the stem
   const stemLeftX = stemCenterX - stemWidth / 2;
   const stemRightX = stemCenterX + stemWidth / 2;
+  const stemTopY = 0;
 
   // Bottom curve dimensions
   const curveRadius = W * 0.25;
   const curveCenterX = curveRadius + limbThickness / 2;
   const curveCenterY = H - (curveRadius + limbThickness / 2);
 
-  // Horizontal bar coordinates
-  const barLeftX = stemCenterX - topBarWidth / 2;
-  const barRightX = stemCenterX + topBarWidth / 2;
-  const barTopY = 0;
-  const barBottomY = limbThickness;
+  // // Horizontal bar coordinates
+  // const barLeftX = stemCenterX - topBarWidth / 2;
+  // const barRightX = stemCenterX + topBarWidth / 2;
+  // const barTopY = 0;
+  // const barBottomY = limbThickness;
 
   // Where the stem meets the curve
   const stemBottomY = curveCenterY;
-
-  const dotDiameter = options?.lineWidth
-    ? options.lineWidth * 1.6
-    : DEFAULT_DOT_DIAMETER;
 
   // --- Path Definition ---
   const path = document.createElementNS(svgNS, "path");
   const pathData = [
     // Start at top-left of horizontal bar
-    `M ${barLeftX} ${barTopY}`,
+    `M ${stemLeftX} ${stemTopY}`,
 
-    // Draw across top of bar
-    `L ${barRightX} ${barTopY}`,
-
-    // Draw down right side of bar
-    `L ${barRightX} ${barBottomY}`,
-
-    // Draw back to where stem starts
-    `L ${stemRightX} ${barBottomY}`,
+    // Draw across top of stem
+    `L ${stemRightX} ${stemTopY}`,
 
     // Draw down right side of stem
     `L ${stemRightX} ${stemBottomY}`,
 
     // Draw curve from bottom right to bottom left
-    `A ${curveRadius} ${curveRadius} 0 0 1 ${curveCenterX - 2 * curveRadius} ${curveCenterY}`,
+    `A ${curveRadius} ${curveRadius * 0.8} 0 0 1 ${curveCenterX - 2 * curveRadius} ${curveCenterY}`,
 
     // Draw leftmost point of curve
     `L ${curveCenterX - curveRadius} ${curveCenterY}`,
@@ -104,10 +99,7 @@ function renderJ_uppercase(
     `A ${curveRadius - limbThickness} ${curveRadius - limbThickness} 0 0 0 ${stemLeftX} ${stemBottomY}`,
 
     // Draw up left side of stem
-    `L ${stemLeftX} ${barBottomY}`,
-
-    // Draw left to complete the bottom of the bar
-    `L ${barLeftX} ${barBottomY}`,
+    `L ${stemLeftX} ${stemTopY}`,
 
     // Close path
     `Z`,
@@ -118,8 +110,23 @@ function renderJ_uppercase(
   path.setAttribute("stroke", outlineColor);
   path.setAttribute("stroke-width", String(outlineWidth));
   path.setAttribute("stroke-linejoin", "round");
-
   svg.appendChild(path);
+
+  // --- Dot definition ---
+  // Dot is centered over the stem
+  const dotRadius = dotDiameter / 2;
+  const dotCenterX = stemCenterX;
+  const dotCenterY = -(2 + dotRadius);
+
+  const dot = document.createElementNS(svgNS, "circle");
+  dot.setAttribute("cx", String(dotCenterX));
+  dot.setAttribute("cy", String(dotCenterY));
+  dot.setAttribute("r", String(dotRadius));
+  dot.setAttribute("fill", fillColor);
+  dot.setAttribute("stroke", outlineColor);
+  dot.setAttribute("stroke-width", String(outlineWidth));
+
+  svg.appendChild(dot);
 
   // --- Attachment Points Calculation ---
   // Define circle for face features
@@ -142,12 +149,18 @@ function renderJ_uppercase(
   };
 
   const attachments: AttachmentList = {
-    // Eyes at the top of the J
-    leftEye: { x: stemCenterX - stemWidth / 2, y: barBottomY / 2 },
-    rightEye: { x: stemCenterX + stemWidth / 2, y: barBottomY / 2 },
+    // Eyes in the upper part of the dot
+    leftEye: {
+      x: dotCenterX - dotRadius * 0.3,
+      y: dotCenterY - dotRadius * 0.4,
+    },
+    rightEye: {
+      x: dotCenterX + dotRadius * 0.3,
+      y: dotCenterY - dotRadius * 0.4,
+    },
 
-    // Mouth in the bottom curve
-    mouth: { x: stemCenterX, y: curveCenterY },
+    // Mouth in the lower part of the dot
+    mouth: { x: dotCenterX, y: dotCenterY + dotRadius * 0.3 },
 
     // Hat sits on top of the letter
     hat: { x: stemCenterX, y: outlineWidth / 2 },
@@ -155,13 +168,13 @@ function renderJ_uppercase(
     // Arms
     leftArm: {
       x: stemLeftX,
-      y: H * 0.5,
+      y: H * 0.3,
     },
-    rightArm: { x: stemRightX, y: H * 0.5 },
+    rightArm: { x: stemRightX, y: H * 0.3 },
 
     // Legs
-    leftLeg: { x: curveCenterX - curveRadius / 2, y: H - outlineWidth / 2 },
-    rightLeg: { x: curveCenterX + curveRadius / 2, y: H - outlineWidth / 2 },
+    leftLeg: { x: stemLeftX, y: H - outlineWidth / 2 },
+    rightLeg: { x: stemRightX, y: H - outlineWidth / 2 },
   };
 
   return {
