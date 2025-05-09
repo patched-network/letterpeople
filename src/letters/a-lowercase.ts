@@ -1,4 +1,4 @@
-// letterpeople/src/letters/d-lowercase.ts
+// letterpeople/src/letters/a-lowercase.ts
 import type {
   LetterOptions,
   InternalLetterRenderResult,
@@ -22,20 +22,21 @@ const DEFAULT_OUTLINE_WIDTH = 1;
 
 /**
  * @internal
- * Renders the base shape and calculates attachment points for the lowercase letter 'd'.
- * This function uses a circle on the left and a vertical stem on the right.
+ * Renders the base shape and calculates attachment points for the lowercase letter 'a'.
+ * This function uses a circle on the left and a vertical stem on the right,
+ * with the stem cut off at the lowercase height constant.
  *
  * @param options - Configuration options for the letter's appearance.
  * @returns An object containing the base SVG element and attachment coordinates.
  */
-function renderD_lowercase(
+function renderA_lowercase(
   options?: LetterOptions,
 ): InternalLetterRenderResult {
   // --- SVG Setup ---
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("viewBox", `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
-  svg.setAttribute("class", "letter-base letter-d-lowercase");
+  svg.setAttribute("class", "letter-base letter-a-lowercase");
 
   // --- Options Processing ---
   const limbThickness = options?.lineWidth ?? DEFAULT_LIMB_THICKNESS;
@@ -48,15 +49,14 @@ function renderD_lowercase(
   const W = VIEWBOX_WIDTH;
   const H = VIEWBOX_HEIGHT;
 
-  // Circle properties (bowl of the 'd')
+  // Circle properties (bowl of the 'a')
   const circleOuterRadius = EFFECTIVE_LOWERCASE_HEIGHT / 2;
   const circleCenterY = H - EFFECTIVE_LOWERCASE_HEIGHT / 2; // Positioned towards the bottom
   const circleInnerRadius = circleOuterRadius - limbThickness;
 
   // Position the circle on the left side of its allocated space
-  // The 'd' character's body will be from (W - EFFECTIVE_LOWERCASE_HEIGHT) to W
-  const characterBaseX = W - EFFECTIVE_LOWERCASE_HEIGHT;
-  const circleCenterX = characterBaseX + circleOuterRadius;
+  // The 'a' character's body will be from 0 to EFFECTIVE_LOWERCASE_HEIGHT
+  const circleCenterX = circleOuterRadius;
 
   const outerCircle: Circle = {
     x: circleCenterX,
@@ -69,19 +69,19 @@ function renderD_lowercase(
     r: circleInnerRadius > 0 ? circleInnerRadius : 0, // Ensure non-negative radius
   };
 
-  // console.log(`InnerCircle calc for 'd'`, innerCircle);
-
   // Vertical stem position (right side of the character)
+  // Unlike 'd', we cut this off at the lowercase height
   const stemRightEdgeX = W;
   const stemLeftEdgeX = stemRightEdgeX - stemWidth;
+  const stemTopY = H - EFFECTIVE_LOWERCASE_HEIGHT; // Cut off at lowercase height
 
   const stemUpperLeft: Point = {
     x: stemLeftEdgeX,
-    y: 0,
+    y: stemTopY,
   };
   const stemUpperRight: Point = {
     x: stemRightEdgeX,
-    y: 0,
+    y: stemTopY,
   };
   const stemBottomLeft: Point = {
     x: stemLeftEdgeX,
@@ -103,7 +103,7 @@ function renderD_lowercase(
     connections.lowerIntersection === null
   ) {
     throw new Error(
-      `d's 'circle' (at x=${outerCircle.x}) is not joined to its stem (at x=${stemLeftEdgeX})! Radius: ${outerCircle.r}. Effective height: ${EFFECTIVE_LOWERCASE_HEIGHT}`,
+      `a's 'circle' (at x=${outerCircle.x}) is not joined to its stem (at x=${stemLeftEdgeX})! Radius: ${outerCircle.r}. Effective height: ${EFFECTIVE_LOWERCASE_HEIGHT}`,
     );
   }
 
@@ -115,12 +115,12 @@ function renderD_lowercase(
   // Start at the upper connection point, then move clockwise for the outer shape
   const pathData = [
     `M ${upperConnection.x} ${upperConnection.y}`, // Start at the upper connection point (stem's left, top-ish)
-    `L ${stemUpperLeft.x} ${stemUpperLeft.y}`, // Line to top left of stem
-    `L ${stemUpperRight.x} ${stemUpperRight.y}`, // Line to top right of stem
+    `L ${stemUpperLeft.x} ${stemUpperLeft.y}`, // Line to top left of stem (at lowercase height)
+    `L ${stemUpperRight.x} ${stemUpperRight.y}`, // Line to top right of stem (at lowercase height)
     `L ${stemBottomRight.x} ${stemBottomRight.y}`, // Line to bottom right of stem
     `L ${stemBottomLeft.x} ${stemBottomLeft.y}`, // Line to bottom left of stem
     `L ${lowerConnection.x} ${lowerConnection.y}`, // Line to the lower connection point (stem's left, bottom-ish)
-    // Arc from lower connection to upper connection, forming the left side of the 'd'
+    // Arc from lower connection to upper connection, forming the left side of the 'a'
     // Using large-arc-flag=1, sweep-flag=1
     `A ${circleOuterRadius} ${circleOuterRadius} 0 1 1 ${upperConnection.x} ${upperConnection.y}`,
     `Z`, // Close outer path
@@ -154,14 +154,20 @@ function renderD_lowercase(
     rightEye: faceFeatures.right,
     mouth: faceFeatures.mouth,
 
-    // Hat sits on top of the stem (stem is on the right)
-    hat: { x: (stemLeftEdgeX + stemRightEdgeX) / 2, y: outlineWidth / 2 },
+    // Hat sits on top of the circle since the stem is cut off
+    hat: {
+      x: outerCircle.x,
+      y: circleCenterY - outerCircle.r - outlineWidth / 2,
+    },
 
     // Arms
-    // Left arm on the far left of the 'd's body
-    leftArm: { x: characterBaseX + outlineWidth / 2, y: outerCircle.y },
-    // Right arm on the stem (far right of 'd's body)
-    rightArm: { x: stemRightEdgeX - outlineWidth / 2, y: H * 0.4 },
+    // Left arm on the far left of the circle
+    leftArm: {
+      x: outerCircle.x - outerCircle.r + outlineWidth / 2,
+      y: outerCircle.y,
+    },
+    // Right arm on the stem (far right of 'a's body)
+    rightArm: { x: stemRightEdgeX - outlineWidth / 2, y: H * 0.75 }, // Position on the shortened stem
 
     // Legs
     // Left leg at the bottom center of the circle
@@ -179,4 +185,4 @@ function renderD_lowercase(
   };
 }
 
-export default renderD_lowercase;
+export default renderA_lowercase;
