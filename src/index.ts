@@ -72,6 +72,9 @@ import X from "./letters/X-uppercase";
 import x from "./letters/x-lowercase";
 import Y from "./letters/Y-uppercase";
 
+// Import constants for descender calculation
+import { VIEWBOX_HEIGHT, EFFECTIVE_LOWERCASE_HEIGHT } from "./letters/CONSTS";
+
 // Map letters to their rendering functions
 const letterRenderers: {
   [key: string]: (options?: LetterOptions) => InternalLetterRenderResult;
@@ -111,11 +114,19 @@ const letterRenderers: {
   Y: Y,
 };
 
-// Default parameters for the mouth if not provided (still relevant for initial creation)
+// Default parameters for the mouth if not provided
 const DEFAULT_MOUTH_PARAMS: MouthParameters = {
   openness: 0.2,
   mood: 0.7,
 };
+
+// Define which lowercase letters are descenders
+const DESCENDER_LETTERS = new Set(["g", "j", "p", "q", "y"]);
+
+// Constants for viewBox calculations
+const DESCENDER_DEPTH = VIEWBOX_HEIGHT - EFFECTIVE_LOWERCASE_HEIGHT; // Should be 35
+const EXTENDED_VIEWBOX_HEIGHT = VIEWBOX_HEIGHT + DESCENDER_DEPTH; // Should be 135
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 export function createLetter(
   letter: string,
@@ -131,10 +142,50 @@ export function createLetter(
   try {
     // 1. Get base SVG and attachment coordinates
     const internalResult: InternalLetterRenderResult = renderer(options);
-    const svg = internalResult.svg;
+    const originalSvg = internalResult.svg;
     const attachmentCoords = internalResult.attachments;
 
-    // 2. Create Attachment SVG Elements AND their Controllers
+    // 2. Extract the width from the original SVG's viewBox
+    const originalViewBox = originalSvg.getAttribute("viewBox");
+    if (!originalViewBox) {
+      throw new Error(`Letter "${letter}" SVG has no viewBox attribute.`);
+    }
+
+    const viewBoxParts = originalViewBox.split(" ");
+    const originalWidth = parseFloat(viewBoxParts[2]);
+
+    // 3. Create a new SVG element with extended height for consistent vertical space
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute(
+      "viewBox",
+      `0 0 ${originalWidth} ${EXTENDED_VIEWBOX_HEIGHT}`,
+    );
+    svg.setAttribute(
+      "class",
+      originalSvg.getAttribute("class") || "letter-base",
+    );
+
+    // 4. Create a content group for all letter parts and attachments
+    const contentGroup = document.createElementNS(SVG_NS, "g");
+
+    // 5. For descender letters, apply a transform to shift the content down
+    const isDescender = DESCENDER_LETTERS.has(letter);
+    if (isDescender) {
+      contentGroup.setAttribute(
+        "transform",
+        `translate(0, ${DESCENDER_DEPTH})`,
+      );
+    }
+
+    // 6. Move all original SVG content to the content group
+    while (originalSvg.firstChild) {
+      contentGroup.appendChild(originalSvg.firstChild);
+    }
+
+    // 7. Add the content group to the new SVG
+    svg.appendChild(contentGroup);
+
+    // 8. Create Attachment SVG Elements AND their Controllers
     let mouthController: MouthAttachment;
 
     const initialMouthParams: MouthParameters = {
@@ -149,7 +200,7 @@ export function createLetter(
       initialMouthParams,
       options?.mouthAppearance,
     );
-    svg.appendChild(mouthSvgElement); // Add the mouth's SVG to the main letter SVG
+    contentGroup.appendChild(mouthSvgElement); // Add the mouth's SVG to the content group
 
     // Now, create the controller for this mouth element
     mouthController = createMorphingMouthController(
@@ -165,7 +216,7 @@ export function createLetter(
       attachmentCoords.leftEye.y,
       { size: options?.eyeSize },
     );
-    svg.appendChild(leftEyeSvgElement);
+    contentGroup.appendChild(leftEyeSvgElement);
     leftEyeCtrl = createEyeController(leftEyeSvgElement, {
       size: options?.eyeSize,
     });
@@ -177,14 +228,12 @@ export function createLetter(
       attachmentCoords.rightEye.y,
       { size: options?.eyeSize },
     );
-    svg.appendChild(rightEyeSvgElement);
+    contentGroup.appendChild(rightEyeSvgElement);
     rightEyeCtrl = createEyeController(rightEyeSvgElement, {
       size: options?.eyeSize,
     });
 
     // Create the eyes group controller
-    // It's non-optional in LetterInstance, so always create one.
-    // The createEyesGroupController can decide if it's "active" based on its children.
     const eyesController: EyesAttachment = createEyesGroupController(
       leftEyeCtrl,
       rightEyeCtrl,
@@ -200,7 +249,7 @@ export function createLetter(
       fillColor: options?.armColor || options?.color || "black",
       angle: 150, // Default angle pointing outward left
     });
-    svg.appendChild(leftArmSvgElement);
+    contentGroup.appendChild(leftArmSvgElement);
     leftArmCtrl = createArmController(leftArmSvgElement, {
       x: attachmentCoords.leftArm.x,
       y: attachmentCoords.leftArm.y,
@@ -219,7 +268,7 @@ export function createLetter(
       fillColor: options?.armColor || options?.color || "black",
       angle: 30, // Default angle pointing outward right
     });
-    svg.appendChild(rightArmSvgElement);
+    contentGroup.appendChild(rightArmSvgElement);
     rightArmCtrl = createArmController(rightArmSvgElement, {
       x: attachmentCoords.rightArm.x,
       y: attachmentCoords.rightArm.y,
@@ -235,15 +284,10 @@ export function createLetter(
       rightArmCtrl,
     );
 
-    // If EyesGroupController itself had a wrapping <g>, it would be appended here.
-    // For now, it's assumed to be a logical grouping of the individual eye controllers.
-
-    // ... Instantiate other attachment controllers similarly ...
-
-    // 3. Append the complete SVG to the target container
+    // 9. Append the complete SVG to the target container
     target.appendChild(svg);
 
-    // 4. Create and return the LetterInstance object
+    // 10. Create and return the LetterInstance object
     const instance: LetterInstance = {
       svgElement: svg,
       attachmentCoords: attachmentCoords, // Still useful for reference
@@ -254,14 +298,13 @@ export function createLetter(
       mouth: mouthController,
       eyes: eyesController,
       arms: armsController,
-      // ... assign other attachment controllers ...
 
       destroy: (): void => {
         svg.remove();
         // If attachment controllers have their own destroy methods for cleanup
         // (e.g., removing event listeners they set up), call them here:
         // mouthController.destroy?.();
-        // eyesController.destroy?.(); // Or eyesController.left.destroy?.(); eyesController.right.destroy?.();
+        // eyesController.destroy?.();
       },
     };
 
