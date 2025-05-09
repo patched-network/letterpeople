@@ -64,6 +64,7 @@ import Q from "./letters/Q-uppercase";
 import R from "./letters/R-uppercase";
 import S from "./letters/S-uppercase";
 import T from "./letters/T-uppercase";
+import U from "./letters/U-uppercase";
 import V from "./letters/V-uppercase";
 import v from "./letters/v-lowercase";
 import W from "./letters/W-uppercase";
@@ -105,6 +106,7 @@ const letterRenderers: {
   R: R,
   S: S,
   T: T,
+  U: U,
   V: V,
   v: v,
   W: W,
