@@ -1,6 +1,6 @@
 // Import LetterInstance and LetterOptions, remove unused LetterRender
 import { createLetter } from "../src/index";
-import { LetterOptions, LetterInstance } from "../src/types";
+import { LetterOptions, LetterInstance, AnimationOptions } from "../src/types";
 
 console.log("Dev environment running");
 
@@ -33,6 +33,25 @@ const mouthMoodSlider = document.getElementById(
 const mouthMoodValue = document.getElementById(
   "mouth-mood-value",
 ) as HTMLSpanElement | null;
+// Arm controls
+const leftArmAngleSlider = document.getElementById(
+  "left-arm-angle-slider",
+) as HTMLInputElement | null;
+const leftArmAngleValue = document.getElementById(
+  "left-arm-angle-value",
+) as HTMLSpanElement | null;
+const rightArmAngleSlider = document.getElementById(
+  "right-arm-angle-slider",
+) as HTMLInputElement | null;
+const rightArmAngleValue = document.getElementById(
+  "right-arm-angle-value",
+) as HTMLSpanElement | null;
+const armLengthSlider = document.getElementById(
+  "arm-length-slider",
+) as HTMLInputElement | null;
+const armLengthValue = document.getElementById(
+  "arm-length-value",
+) as HTMLSpanElement | null;
 // Other controls
 const showAttachmentsCheckbox = document.getElementById(
   "show-attachments-checkbox",
@@ -52,6 +71,9 @@ const animateMouthButton = document.getElementById(
 const blinkButton = document.getElementById(
   "blink-button",
 ) as HTMLButtonElement | null;
+const waveArmsButton = document.getElementById(
+  "wave-arms-button",
+) as HTMLButtonElement | null;
 
 // --- State ---
 let currentText: string =
@@ -67,6 +89,10 @@ let currentOptions: LetterOptions = {
     openness: 0.1,
     mood: 0.7,
   },
+  // Arm options
+  armLength: 15,
+  armThickness: 3,
+  armColor: "#333333",
   // Example: Set mouth appearance options if needed
   // mouthAppearance: {
   //     fillColor: 'red',
@@ -169,6 +195,29 @@ function updateMouthShapes() {
     if (showAttachments) {
       visualizeAttachments(instance.svgElement, instance.attachmentCoords);
     }
+  });
+}
+
+// --- Update Left Arm Angle Function ---
+function updateLeftArmAngle(angle: number) {
+  renderedInstances.forEach((instance) => {
+    instance.arms.left.rotateTo(angle);
+  });
+}
+
+// --- Update Right Arm Angle Function ---
+function updateRightArmAngle(angle: number) {
+  renderedInstances.forEach((instance) => {
+    instance.arms.right.rotateTo(angle);
+  });
+}
+
+// --- Update Arm Length Function ---
+function updateArmLength(length: number) {
+  currentOptions.armLength = length;
+  renderedInstances.forEach((instance) => {
+    instance.arms.left.setLength(length);
+    instance.arms.right.setLength(length);
   });
 }
 
@@ -278,6 +327,34 @@ function setupEventListeners() {
       i.eyes.blink().catch((err) => console.error("Blink failed:", err));
     });
   });
+  
+  // Wave Arms Button
+  waveArmsButton?.addEventListener("click", () => {
+    renderedInstances.forEach((i) => {
+      i.arms.wave().catch((err) => console.error("Wave failed:", err));
+    });
+  });
+  
+  // Left Arm Angle Slider
+  leftArmAngleSlider?.addEventListener("input", (event) => {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    if (leftArmAngleValue) leftArmAngleValue.textContent = value.toFixed(0) + "°";
+    updateLeftArmAngle(value);
+  });
+  
+  // Right Arm Angle Slider
+  rightArmAngleSlider?.addEventListener("input", (event) => {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    if (rightArmAngleValue) rightArmAngleValue.textContent = value.toFixed(0) + "°";
+    updateRightArmAngle(value);
+  });
+  
+  // Arm Length Slider
+  armLengthSlider?.addEventListener("input", (event) => {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    if (armLengthValue) armLengthValue.textContent = value.toFixed(1);
+    updateArmLength(value);
+  });
 }
 
 // --- Initialization ---
@@ -297,7 +374,14 @@ document.addEventListener("DOMContentLoaded", () => {
     sizeSlider &&
     sizeValueDisplay &&
     displayArea &&
-    animateMouthButton // Add button check
+    animateMouthButton, // Add button check
+    waveArmsButton,
+    leftArmAngleSlider,
+    leftArmAngleValue,
+    rightArmAngleSlider,
+    rightArmAngleValue,
+    armLengthSlider,
+    armLengthValue
   ) {
     // Set initial state from HTML values
     currentText = textInput.value;
@@ -312,6 +396,9 @@ document.addEventListener("DOMContentLoaded", () => {
         mood: parseFloat(mouthMoodSlider.value),
       },
       // mouthAppearance: { ... } // Initialize if needed
+      armLength: parseFloat(armLengthSlider.value),
+      armThickness: 3, // Default value
+      armColor: "#333333", // Default value
     };
     showAttachments = showAttachmentsCheckbox.checked;
     letterSize = parseInt(sizeSlider.value, 10);
@@ -321,6 +408,11 @@ document.addEventListener("DOMContentLoaded", () => {
     mouthOpennessValue.textContent =
       currentOptions.mouthParams!.openness!.toFixed(2);
     mouthMoodValue.textContent = currentOptions.mouthParams!.mood!.toFixed(2);
+    
+    // Set initial display values for arm controls
+    if (leftArmAngleValue) leftArmAngleValue.textContent = "150°";
+    if (rightArmAngleValue) rightArmAngleValue.textContent = "30°";
+    if (armLengthValue) armLengthValue.textContent = currentOptions.armLength!.toFixed(1);
 
     setupEventListeners();
     renderLetters(); // Initial render

@@ -2,6 +2,7 @@
 import type {
   MouthAttachment,
   EyesAttachment, // Assuming this will be the group controller for eyes
+  ArmsAttachment, // Group controller for arms
   // EyeAttachment, // Individual eye controller, might be used by EyesAttachment internally
 } from "./attachments/types"; // Import the new attachment controller types
 
@@ -40,11 +41,16 @@ export interface LetterOptions {
   eyeSize?: number; // Simple override, could be part of a more complex EyeOptions
 
   // Nested options for the morphing mouth
-  mouthParams?: Partial<MouthParameters>;
-  mouthAppearance?: Partial<MouthAppearanceOptions>;
+    mouthParams?: Partial<MouthParameters>;
+    mouthAppearance?: Partial<MouthAppearanceOptions>;
+  
+    // Arm options
+    armLength?: number;
+    armThickness?: number;
+    armColor?: string;
 
-  // Add other attachment-specific initial options here as new attachments are developed
-  // e.g., eyebrowOptions?: Partial<EyebrowAppearanceOptions>;
+    // Add other attachment-specific initial options here as new attachments are developed
+    // e.g., eyebrowOptions?: Partial<EyebrowAppearanceOptions>;
 }
 
 // General animation options, can be used by high-level LetterInstance methods
@@ -75,6 +81,7 @@ export interface LetterInstance {
   // --- Direct Accessors to Attachment Controllers ---
   readonly mouth: MouthAttachment;
   readonly eyes: EyesAttachment;
+  readonly arms: ArmsAttachment;
   // readonly leftEyebrow?: EyebrowAttachment; // Example for future
   // readonly rightEyebrow?: EyebrowAttachment; // Example for future
   // ... other attachments

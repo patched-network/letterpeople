@@ -14,6 +14,8 @@ import type {
   MouthAttachment,
   EyesAttachment,
   EyeAttachment,
+  ArmAttachment,
+  ArmsAttachment,
   // AttachmentAnimationOptions, // Not used directly in this file yet
   // attachmentTypes // Not used directly in this file yet
 } from "./attachments/types";
@@ -29,6 +31,11 @@ import {
   createMorphingMouth,
   createMorphingMouthController,
 } from "./attachments/mouth";
+import {
+  createArm,
+  createArmController,
+  createArmsGroupController,
+} from "./attachments/arms";
 
 // Import letter implementations
 import A from "./letters/A-uppercase";
@@ -173,6 +180,51 @@ export function createLetter(
       rightEyeCtrl,
     );
 
+    // Create arm controllers
+    let leftArmCtrl: ArmAttachment;
+    const leftArmSvgElement = createArm({
+      x: attachmentCoords.leftArm.x,
+      y: attachmentCoords.leftArm.y,
+      length: options?.armLength || 15,
+      thickness: options?.armThickness || 3,
+      fillColor: options?.armColor || options?.color || "black",
+      angle: 150, // Default angle pointing outward left
+    });
+    svg.appendChild(leftArmSvgElement);
+    leftArmCtrl = createArmController(leftArmSvgElement, {
+      x: attachmentCoords.leftArm.x,
+      y: attachmentCoords.leftArm.y,
+      length: options?.armLength || 15,
+      thickness: options?.armThickness || 3,
+      fillColor: options?.armColor || options?.color || "black",
+      angle: 150,
+    });
+
+    let rightArmCtrl: ArmAttachment;
+    const rightArmSvgElement = createArm({
+      x: attachmentCoords.rightArm.x,
+      y: attachmentCoords.rightArm.y,
+      length: options?.armLength || 15,
+      thickness: options?.armThickness || 3,
+      fillColor: options?.armColor || options?.color || "black",
+      angle: 30, // Default angle pointing outward right
+    });
+    svg.appendChild(rightArmSvgElement);
+    rightArmCtrl = createArmController(rightArmSvgElement, {
+      x: attachmentCoords.rightArm.x,
+      y: attachmentCoords.rightArm.y,
+      length: options?.armLength || 15,
+      thickness: options?.armThickness || 3,
+      fillColor: options?.armColor || options?.color || "black",
+      angle: 30,
+    });
+
+    // Create arms group controller
+    const armsController: ArmsAttachment = createArmsGroupController(
+      leftArmCtrl,
+      rightArmCtrl,
+    );
+
     // If EyesGroupController itself had a wrapping <g>, it would be appended here.
     // For now, it's assumed to be a logical grouping of the individual eye controllers.
 
@@ -191,6 +243,7 @@ export function createLetter(
       // Assign the created controller instances
       mouth: mouthController,
       eyes: eyesController,
+      arms: armsController,
       // ... assign other attachment controllers ...
 
       destroy: (): void => {

@@ -4,7 +4,7 @@
 
 import type { AnimationParams } from "animejs";
 
-export type attachmentTypes = "eyes-group" | "eye" | "mouth";
+export type attachmentTypes = "eyes-group" | "eye" | "mouth" | "arm" | "arms-group";
 
 /**
  * Represents a generic, controllable attachment part of a LetterInstance.
@@ -100,4 +100,30 @@ export interface EyeAttachment extends BaseAttachment {
   readonly type: "eye";
 
   wink(blinkOptions?: AnimationParams): Promise<void>;
+}
+
+export interface ArmsAttachment {
+  // expose individual arms
+  left: ArmAttachment;
+  right: ArmAttachment;
+
+  // helper functions that apply to both arms
+  wave(options?: AnimationParams): Promise<void>;
+  
+  // common interface methods
+  show(options?: AnimationParams): Promise<void>;
+  hide(options?: AnimationParams): Promise<void>;
+  isVisible(): boolean;
+  isAnimating(): boolean;
+  stopAnimations(): void;
+  toString(): string;
+}
+
+export interface ArmAttachment extends BaseAttachment {
+  readonly type: "arm";
+
+  rotateTo(angle: number, options?: AnimationParams): Promise<void>;
+  wave(options?: AnimationParams): Promise<void>;
+  setLength(newLength: number, options?: AnimationParams): Promise<void>;
+  getCurrentAngle(): number;
 }
