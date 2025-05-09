@@ -29,6 +29,9 @@ export interface LetterOptions {
   borderColor?: string;
   borderWidth?: number;
   style?: "sans-serif" | "serif";
+  
+  // Debug options
+  debug?: boolean; // When true, shows visual indicators like the descender baseline
 
   // --- Attachment Options ---
   // These options are for the *initial creation* of attachments.

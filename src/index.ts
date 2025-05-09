@@ -185,6 +185,25 @@ export function createLetter(
     // 7. Add the content group to the new SVG
     svg.appendChild(contentGroup);
 
+    // 7b. Add the debug visualization of the descender baseline if requested
+    if (options?.debug) {
+      const baselineLine = document.createElementNS(SVG_NS, "line");
+      baselineLine.setAttribute("x1", "0");
+      baselineLine.setAttribute("y1", String(VIEWBOX_HEIGHT));
+      baselineLine.setAttribute("x2", String(originalWidth));
+      baselineLine.setAttribute("y2", String(VIEWBOX_HEIGHT));
+      baselineLine.setAttribute("stroke", "red");
+      baselineLine.setAttribute("stroke-width", "1");
+      baselineLine.setAttribute("stroke-dasharray", "4");
+
+      // Create a debug group to hold these elements
+      const debugGroup = document.createElementNS(SVG_NS, "g");
+      debugGroup.setAttribute("class", "letter-debug");
+      debugGroup.appendChild(baselineLine);
+
+      svg.appendChild(debugGroup);
+    }
+
     // 8. Create Attachment SVG Elements AND their Controllers
     let mouthController: MouthAttachment;
 

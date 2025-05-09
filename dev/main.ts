@@ -62,9 +62,12 @@ const armLengthSlider = document.getElementById(
 const armLengthValue = document.getElementById(
   "arm-length-value",
 ) as HTMLSpanElement | null;
-// Other controls
+// Debug controls
 const showAttachmentsCheckbox = document.getElementById(
   "show-attachments-checkbox",
+) as HTMLInputElement | null;
+const showBaselineCheckbox = document.getElementById(
+  "show-baseline-checkbox",
 ) as HTMLInputElement | null;
 const sizeSlider = document.getElementById(
   "size-slider",
@@ -94,6 +97,8 @@ let currentOptions: LetterOptions = {
   lineWidth: 25,
   borderColor: "#333333",
   borderWidth: 4,
+  // Debug options
+  debug: false,
   // Initialize mouth params from default slider values
   mouthParams: {
     openness: 0.1,
@@ -114,6 +119,7 @@ let showAttachments: boolean = true;
 let showEyes: boolean = true;
 let showMouth: boolean = true;
 let showArms: boolean = true;
+let showBaseline: boolean = false;
 let letterSize: number = 80;
 let renderedInstances: LetterInstance[] = []; // Store rendered instances
 
@@ -331,6 +337,13 @@ function setupEventListeners() {
     }
   });
   
+  // Show Baseline Checkbox
+  showBaselineCheckbox?.addEventListener("change", (event) => {
+    showBaseline = (event.target as HTMLInputElement).checked;
+    currentOptions.debug = showBaseline;
+    renderLetters();
+  });
+  
   // Show Eyes Checkbox
   showEyesCheckbox?.addEventListener("change", (event) => {
     showEyes = (event.target as HTMLInputElement).checked;
@@ -432,6 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
     mouthMoodSlider &&
     mouthMoodValue &&
     showAttachmentsCheckbox &&
+    showBaselineCheckbox &&
     showEyesCheckbox &&
     showMouthCheckbox &&
     showArmsCheckbox &&
@@ -455,6 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
       lineWidth: parseInt(lineWidthInput.value, 10),
       borderColor: strokeColorInput.value,
       borderWidth: parseFloat(strokeWidthInput.value),
+      debug: showBaselineCheckbox?.checked || false,
       mouthParams: {
         // Initialize from sliders
         openness: parseFloat(mouthOpennessSlider.value),
@@ -469,6 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showEyes = showEyesCheckbox.checked;
     showMouth = showMouthCheckbox.checked;
     showArms = showArmsCheckbox.checked;
+    showBaseline = showBaselineCheckbox?.checked || false;
     letterSize = parseInt(sizeSlider.value, 10);
 
     // Set initial display values for sliders
