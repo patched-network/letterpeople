@@ -20,6 +20,16 @@ const strokeColorInput = document.getElementById(
 const strokeWidthInput = document.getElementById(
   "stroke-width-input",
 ) as HTMLInputElement | null;
+// Attachment toggles
+const showEyesCheckbox = document.getElementById(
+  "show-eyes-checkbox"
+) as HTMLInputElement | null;
+const showMouthCheckbox = document.getElementById(
+  "show-mouth-checkbox"
+) as HTMLInputElement | null;
+const showArmsCheckbox = document.getElementById(
+  "show-arms-checkbox"
+) as HTMLInputElement | null;
 // Mouth controls
 const mouthOpennessSlider = document.getElementById(
   "mouth-openness-slider",
@@ -101,6 +111,9 @@ let currentOptions: LetterOptions = {
   // }
 };
 let showAttachments: boolean = true;
+let showEyes: boolean = true;
+let showMouth: boolean = true;
+let showArms: boolean = true;
 let letterSize: number = 80;
 let renderedInstances: LetterInstance[] = []; // Store rendered instances
 
@@ -168,6 +181,18 @@ function renderLetters() {
           letterInstance.attachmentCoords,
         );
       }
+      
+      // Apply visibility settings for attachments
+      if (!showEyes && letterInstance.eyes) {
+        letterInstance.eyes.hide();
+      }
+      if (!showMouth && letterInstance.mouth) {
+        letterInstance.mouth.hide();
+      }
+      if (!showArms && letterInstance.arms) {
+        letterInstance.arms.hide();
+      }
+      
       displayArea.appendChild(wrapper);
     } else {
       // console.warn(`Renderer for letter "${char}" not found.`); // Already logged in createLetter
@@ -305,6 +330,42 @@ function setupEventListeners() {
       });
     }
   });
+  
+  // Show Eyes Checkbox
+  showEyesCheckbox?.addEventListener("change", (event) => {
+    showEyes = (event.target as HTMLInputElement).checked;
+    renderedInstances.forEach((instance) => {
+      if (showEyes) {
+        instance.eyes.show();
+      } else {
+        instance.eyes.hide();
+      }
+    });
+  });
+  
+  // Show Mouth Checkbox
+  showMouthCheckbox?.addEventListener("change", (event) => {
+    showMouth = (event.target as HTMLInputElement).checked;
+    renderedInstances.forEach((instance) => {
+      if (showMouth) {
+        instance.mouth.show();
+      } else {
+        instance.mouth.hide();
+      }
+    });
+  });
+  
+  // Show Arms Checkbox
+  showArmsCheckbox?.addEventListener("change", (event) => {
+    showArms = (event.target as HTMLInputElement).checked;
+    renderedInstances.forEach((instance) => {
+      if (showArms) {
+        instance.arms.show();
+      } else {
+        instance.arms.hide();
+      }
+    });
+  });
 
   // Size Slider (trigger full re-render)
   sizeSlider.addEventListener("input", (event) => {
@@ -371,16 +432,20 @@ document.addEventListener("DOMContentLoaded", () => {
     mouthMoodSlider &&
     mouthMoodValue &&
     showAttachmentsCheckbox &&
+    showEyesCheckbox &&
+    showMouthCheckbox &&
+    showArmsCheckbox &&
     sizeSlider &&
     sizeValueDisplay &&
     displayArea &&
-    animateMouthButton, // Add button check
-    waveArmsButton,
-    leftArmAngleSlider,
-    leftArmAngleValue,
-    rightArmAngleSlider,
-    rightArmAngleValue,
-    armLengthSlider,
+    animateMouthButton &&
+    blinkButton &&
+    waveArmsButton &&
+    leftArmAngleSlider &&
+    leftArmAngleValue &&
+    rightArmAngleSlider &&
+    rightArmAngleValue &&
+    armLengthSlider &&
     armLengthValue
   ) {
     // Set initial state from HTML values
@@ -401,6 +466,9 @@ document.addEventListener("DOMContentLoaded", () => {
       armColor: "#333333", // Default value
     };
     showAttachments = showAttachmentsCheckbox.checked;
+    showEyes = showEyesCheckbox.checked;
+    showMouth = showMouthCheckbox.checked;
+    showArms = showArmsCheckbox.checked;
     letterSize = parseInt(sizeSlider.value, 10);
 
     // Set initial display values for sliders

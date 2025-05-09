@@ -18,12 +18,14 @@
             .controls {
                 display: flex;
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
                 border: 1px solid #eee;
-                padding: 15px;
+                padding: 12px;
                 border-radius: 5px;
                 height: fit-content; /* Prevent controls stretching */
-                min-width: 250px; /* Give controls some space */
+                min-width: 280px; /* Give controls some space */
+                max-width: 340px; /* Don't let it get too wide */
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
             .controls label,
             .controls .checkbox-label {
@@ -33,9 +35,19 @@
                 gap: 5px;
                 font-size: 0.9em;
             }
+            .controls .checkbox-label {
+                /* For better alignment when checkbox is before text */
+                flex-direction: row;
+                gap: 8px;
+                align-items: center;
+            }
+            .controls .checkbox-label input[type="checkbox"] {
+                /* Remove top margin when in row layout */
+                margin-top: 0;
+            }
             .controls .checkbox-label span {
-                /* Align checkbox text better */
-                margin-bottom: 5px;
+                /* Adjust checkbox text */
+                margin-bottom: 0;
             }
             .controls input[type="text"],
             .controls input[type="number"],
@@ -47,6 +59,7 @@
                 border-radius: 3px;
                 box-sizing: border-box; /* Include padding/border in width */
                 width: 100%; /* Make inputs fill label width */
+                font-size: 0.9em;
             }
             .controls input[type="color"] {
                 height: 30px; /* Make color picker easier to click */
@@ -61,6 +74,84 @@
                 font-size: 0.8em;
                 color: #555;
                 text-align: right;
+            }
+
+            /* Collapsible panel styles */
+            .control-panel {
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin-bottom: 8px;
+                overflow: hidden;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .panel-header {
+                background-color: #f5f5f5;
+                padding: 6px 10px;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                transition: background-color 0.2s ease;
+            }
+            .panel-header h4 {
+                margin: 0;
+                font-size: 0.95em;
+                color: #444;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .panel-content {
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                border-top: 1px solid #eee;
+                background-color: #fcfcfc;
+            }
+            .panel-content button {
+                margin-top: 4px;
+                padding: 5px 10px;
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+                font-size: 0.9em;
+            }
+            .panel-content button:hover {
+                background-color: #e8e8e8;
+            }
+            /* Divider to replace <hr> */
+            .divider {
+                height: 1px;
+                background-color: #ddd;
+                margin: 10px 0;
+            }
+            .toggle-icon {
+                font-size: 10px;
+                transition: transform 0.2s ease;
+                color: #666;
+            }
+            .panel-header.collapsed .toggle-icon {
+                transform: rotate(-90deg);
+            }
+            .panel-header:hover {
+                background-color: #e9e9e9;
+            }
+            .panel-content.collapsed {
+                display: none;
+            }
+            /* Side-by-side container for controls */
+            .controls-row {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 8px;
+                align-items: center;
+            }
+            .control-item {
+                flex: 1;
+                min-width: 0; /* Prevent flex items from overflowing */
             }
 
             #letter-display-area {
@@ -118,7 +209,7 @@
     </head>
     <body>
         <div class="controls">
-            <h3>Controls</h3>
+            <h3>LetterPeople Sandbox</h3>
             <label>
                 Text to Render:
                 <input
@@ -127,71 +218,54 @@
                     value="ABCDEFGHIJKLMNOPQRSTUVWXYZLabcdefghijklmnopqrstuvwxyz"
                 />
             </label>
-            <label>
-                Fill Color (options.color):
-                <input type="color" id="fill-color-input" value="#add8e6" />
-            </label>
-            <label>
-                Limb Thickness (options.lineWidth):
-                <input
-                    type="number"
-                    id="line-width-input"
-                    value="25"
-                    min="1"
-                    max="50"
-                    step="1"
-                />
-            </label>
-            <label>
-                Outline Color (options.strokeColor):
-                <input type="color" id="stroke-color-input" value="#333333" />
-            </label>
-            <label>
-                Outline Width (options.strokeWidth):
-                <input
-                    type="number"
-                    id="stroke-width-input"
-                    value="4"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                />
-            </label>
-
-            <hr />
-            <!-- Mouth Controls -->
-            <h4>Mouth Shape</h4>
-            <label>
-                Openness (mouthParams.openness):
-                <span class="range-value" id="mouth-openness-value">0.10</span>
-                <input
-                    type="range"
-                    id="mouth-openness-slider"
-                    min="0"
-                    max="1"
-                    value="0.1"
-                    step="0.01"
-                />
-            </label>
-            <label>
-                Mood (mouthParams.mood):
-                <span class="range-value" id="mouth-mood-value">0.70</span>
-                <input
-                    type="range"
-                    id="mouth-mood-slider"
-                    min="0"
-                    max="1"
-                    value="0.7"
-                    step="0.01"
-                />
-            </label>
-
-            <hr />
-            <!-- Other Controls -->
-            <label class="checkbox-label">
-                <span>Show Attachment Points:</span>
-                <input type="checkbox" id="show-attachments-checkbox" checked />
-            </label>
+            <!-- Color controls side by side -->
+            <div class="controls-row">
+                <label class="control-item">
+                    Fill Color:
+                    <input
+                        type="color"
+                        id="fill-color-input"
+                        value="#add8e6"
+                        style="width: 100%"
+                    />
+                </label>
+                <label class="control-item">
+                    Outline Color:
+                    <input
+                        type="color"
+                        id="stroke-color-input"
+                        value="#333333"
+                        style="width: 100%"
+                    />
+                </label>
+            </div>
+            <!-- Number inputs side by side -->
+            <div class="controls-row">
+                <label class="control-item">
+                    Limb Thickness:
+                    <input
+                        type="number"
+                        id="line-width-input"
+                        value="25"
+                        min="1"
+                        max="50"
+                        step="1"
+                        style="width: 100%"
+                    />
+                </label>
+                <label class="control-item">
+                    Outline Width:
+                    <input
+                        type="number"
+                        id="stroke-width-input"
+                        value="4"
+                        min="0"
+                        max="20"
+                        step="0.5"
+                        style="width: 100%"
+                    />
+                </label>
+            </div>
 
             <label>
                 Letter Size:
@@ -206,53 +280,170 @@
                 />
             </label>
 
-            <hr />
-            <!-- Arm Controls -->
-            <h4>Arm Controls</h4>
-            <label>
-                Left Arm Angle:
-                <span class="range-value" id="left-arm-angle-value">150°</span>
-                <input
-                    type="range"
-                    id="left-arm-angle-slider"
-                    min="0"
-                    max="360"
-                    value="150"
-                    step="5"
-                />
-            </label>
-            <label>
-                Right Arm Angle:
-                <span class="range-value" id="right-arm-angle-value">30°</span>
-                <input
-                    type="range"
-                    id="right-arm-angle-slider"
-                    min="0"
-                    max="360"
-                    value="30"
-                    step="5"
-                />
-            </label>
-            <label>
-                Arm Length:
-                <span class="range-value" id="arm-length-value">15.0</span>
-                <input
-                    type="range"
-                    id="arm-length-slider"
-                    min="5"
-                    max="30"
-                    value="15"
-                    step="0.5"
-                />
-            </label>
+            <div class="divider"></div>
 
-            <hr />
-            <!-- Action Button -->
-            <button id="animate-mouth-button" type="button">
-                Animate Mouths
-            </button>
-            <button id="blink-button" type="button">Blink</button>
-            <button id="wave-arms-button" type="button">Wave Arms</button>
+            <!-- Attachment Toggle Controls -->
+            <h4 style="margin-bottom: 6px; margin-top: 2px">Attachments</h4>
+
+            <div class="controls-row">
+                <!-- Eyes Toggle -->
+                <label class="checkbox-label control-item">
+                    <input type="checkbox" id="show-eyes-checkbox" checked />
+                    <span>👁️Eyes</span>
+                </label>
+
+                <!-- Mouth Toggle -->
+                <label class="checkbox-label control-item">
+                    <input type="checkbox" id="show-mouth-checkbox" checked />
+                    <span>👄&nbsp;Mouth</span>
+                </label>
+
+                <!-- Arms Toggle -->
+                <label class="checkbox-label control-item">
+                    <input type="checkbox" id="show-arms-checkbox" checked />
+                    <span>💪Arms</span>
+                </label>
+            </div>
+
+            <!-- Eyes Controls Panel -->
+            <div class="control-panel" id="eyes-control-panel">
+                <div class="panel-header collapsed" data-target="eyes-controls">
+                    <h4><span>👁️</span> Eyes</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="panel-content collapsed" id="eyes-controls">
+                    <!-- Eye controls will go here -->
+                    <button id="blink-button" type="button">Blink</button>
+                </div>
+            </div>
+
+            <!-- Mouth Controls Panel -->
+            <div class="control-panel" id="mouth-control-panel">
+                <div
+                    class="panel-header collapsed"
+                    data-target="mouth-controls"
+                >
+                    <h4><span>👄</span> Mouth</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="panel-content collapsed" id="mouth-controls">
+                    <div class="controls-row">
+                        <label class="control-item">
+                            Openness:
+                            <span class="range-value" id="mouth-openness-value"
+                                >0.10</span
+                            >
+                            <input
+                                type="range"
+                                id="mouth-openness-slider"
+                                min="0"
+                                max="1"
+                                value="0.1"
+                                step="0.01"
+                            />
+                        </label>
+                        <label class="control-item">
+                            Mood:
+                            <span class="range-value" id="mouth-mood-value"
+                                >0.70</span
+                            >
+                            <input
+                                type="range"
+                                id="mouth-mood-slider"
+                                min="0"
+                                max="1"
+                                value="0.7"
+                                step="0.01"
+                            />
+                        </label>
+                    </div>
+                    <button id="animate-mouth-button" type="button">
+                        Speak
+                    </button>
+                </div>
+            </div>
+
+            <!-- Arm Controls Panel -->
+            <div class="control-panel" id="arms-control-panel">
+                <div class="panel-header collapsed" data-target="arms-controls">
+                    <h4><span>💪</span> Arms</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="panel-content collapsed" id="arms-controls">
+                    <div class="controls-row">
+                        <label class="control-item">
+                            Left Angle:
+                            <span class="range-value" id="left-arm-angle-value"
+                                >150°</span
+                            >
+                            <input
+                                type="range"
+                                id="left-arm-angle-slider"
+                                min="0"
+                                max="360"
+                                value="150"
+                                step="5"
+                            />
+                        </label>
+                        <label class="control-item">
+                            Right Angle:
+                            <span class="range-value" id="right-arm-angle-value"
+                                >30°</span
+                            >
+                            <input
+                                type="range"
+                                id="right-arm-angle-slider"
+                                min="0"
+                                max="360"
+                                value="30"
+                                step="5"
+                            />
+                        </label>
+                    </div>
+                    <label>
+                        Arm Length:
+                        <span class="range-value" id="arm-length-value"
+                            >15.0</span
+                        >
+                        <input
+                            type="range"
+                            id="arm-length-slider"
+                            min="5"
+                            max="30"
+                            value="15"
+                            step="0.5"
+                        />
+                    </label>
+                    <button id="wave-arms-button" type="button">
+                        Wave Arms
+                    </button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Debug control Panel -->
+            <div class="control-panel" id="debug-control-panel">
+                <div
+                    class="panel-header collapsed"
+                    data-target="debug-controls"
+                >
+                    <h4><span>🔧</span> Debug</h4>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="panel-content collapsed" id="debug-controls">
+                    <label class="checkbox-label">
+                        <input
+                            type="checkbox"
+                            id="show-attachments-checkbox"
+                            checked
+                        />
+                        <span>Show Attachment Points</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action buttons moved to their respective panels -->
         </div>
 
         <div id="letter-display-area">
@@ -260,5 +451,38 @@
         </div>
 
         <script type="module" src="/main.ts"></script>
+
+        <script>
+            // Add collapsible panel functionality
+            document.addEventListener("DOMContentLoaded", () => {
+                const panelHeaders = document.querySelectorAll(".panel-header");
+
+                // Initialize panels based on their initial class state
+                panelHeaders.forEach((header) => {
+                    const targetId = header.getAttribute("data-target");
+                    const targetContent = document.getElementById(targetId);
+
+                    if (targetContent) {
+                        // Ensure content collapsed state matches header state
+                        if (header.classList.contains("collapsed")) {
+                            targetContent.classList.add("collapsed");
+                        } else {
+                            targetContent.classList.remove("collapsed");
+                        }
+                    }
+
+                    // Add click event listener to toggle panels
+                    header.addEventListener("click", () => {
+                        const targetId = header.getAttribute("data-target");
+                        const targetContent = document.getElementById(targetId);
+
+                        if (targetContent) {
+                            header.classList.toggle("collapsed");
+                            targetContent.classList.toggle("collapsed");
+                        }
+                    });
+                });
+            });
+        </script>
     </body>
 </html>
