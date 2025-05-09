@@ -23,6 +23,22 @@ export interface LineSegment {
   p2: Point;
 }
 
+/** Represents a circle with a center point and radius. */
+export interface Circle {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/**
+ * Represents the result of finding intersections between a vertical line and a circle.
+ * Both points may be null if there are no intersections.
+ */
+export interface VerticalLineCircleIntersection {
+  upperIntersection: Point | null;
+  lowerIntersection: Point | null;
+}
+
 // --- Point Operations ---
 
 /**
@@ -33,6 +49,20 @@ export interface LineSegment {
  */
 export function addPoints(p1: Point, p2: Point): Point {
   return { x: p1.x + p2.x, y: p1.y + p2.y };
+}
+
+/**
+ * Returns a point on a circle at the specified angle.
+ * @param deg - The angle in degrees (0 is at the right, 90 at the bottom).
+ * @param c - The circle.
+ * @returns A point on the circle's circumference at the specified angle.
+ */
+export function pointAtAngle(deg: number, c: Circle): Point {
+  const radians = degToRad(deg);
+  return {
+    x: c.x + c.r * Math.cos(radians),
+    y: c.y + c.r * Math.sin(radians),
+  };
 }
 
 /**
@@ -491,4 +521,166 @@ export function ellipticalArcPoint(
  */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+// --- Circle Operations ---
+
+/**
+ * Calculates the intersection points between a line and a circle.
+ * @param line - The line defined by two points.
+ * @param circle - The circle.
+ * @returns An array of intersection points (empty if no intersections found).
+ */
+export function getLineCircleIntersections(
+  line: Line,
+  circle: Circle,
+): Point[] {
+  // Translate the problem so the circle is at the origin
+  const p1 = { x: line.p1.x - circle.x, y: line.p1.y - circle.y };
+  const p2 = { x: line.p2.x - circle.x, y: line.p2.y - circle.y };
+
+  // Calculate the coefficients of the quadratic equation
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+
+  const a = dx * dx + dy * dy;
+  const b = 2 * (p1.x * dx + p1.y * dy);
+  const c = p1.x * p1.x + p1.y * p1.y - circle.r * circle.r;
+
+  // Calculate discriminant
+  const discriminant = b * b - 4 * a * c;
+
+  // If discriminant is negative, there are no real solutions
+  if (discriminant < -EPSILON) {
+    return [];
+  }
+
+  // If discriminant is close to 0, there's one intersection point
+  if (Math.abs(discriminant) <= EPSILON) {
+    const t = -b / (2 * a);
+    const intersection = {
+      x: p1.x + t * dx + circle.x,
+      y: p1.y + t * dy + circle.y,
+    };
+    return [intersection];
+  }
+
+  // If discriminant is positive, there are two intersection points
+  const sqrtDisc = Math.sqrt(discriminant);
+  const t1 = (-b - sqrtDisc) / (2 * a);
+  const t2 = (-b + sqrtDisc) / (2 * a);
+
+  const intersections: Point[] = [];
+
+  // Only include intersections that are on the infinite line
+  const intersection1 = {
+    x: p1.x + t1 * dx + circle.x,
+    y: p1.y + t1 * dy + circle.y,
+  };
+
+  const intersection2 = {
+    x: p1.x + t2 * dx + circle.x,
+    y: p1.y + t2 * dy + circle.y,
+  };
+
+  return [intersection1, intersection2];
+}
+
+/**
+ * Calculates the intersection points between a line segment and a circle.
+ * @param segment - The line segment.
+ * @param circle - The circle.
+ * @returns An array of intersection points (empty if no intersections found).
+ */
+export function getSegmentCircleIntersections(
+  segment: LineSegment,
+  circle: Circle,
+): Point[] {
+  // First find intersections with the infinite line
+  const lineIntersections = getLineCircleIntersections(segment, circle);
+
+  // Filter out intersections not on the segment
+  return lineIntersections.filter((point) => {
+    // Project the point onto the segment and check if they're the same
+    const projection = projectPointOntoSegment(point, segment);
+    return distanceSq(point, projection) < EPSILON;
+  });
+}
+
+/**
+ * Calculates the intersection points between a vertical line and a circle.
+ * @param x - The x-coordinate of the vertical line.
+ * @param circle - The circle.
+ * @returns An object containing the upper and lower intersection points (if they exist).
+ */
+export function getVerticalLineCircleIntersections(
+  x: number,
+  circle: Circle,
+): VerticalLineCircleIntersection {
+  // Distance from the line to the circle center
+  const dx = Math.abs(x - circle.x);
+
+  // If the distance is greater than the radius, no intersection exists
+  if (dx > circle.r) {
+    return {
+      upperIntersection: null,
+      lowerIntersection: null,
+    };
+  }
+
+  // If the distance equals the radius, there's one tangent point
+  if (Math.abs(dx - circle.r) < EPSILON) {
+    const tangentPoint = { x: x, y: circle.y };
+    return {
+      upperIntersection: tangentPoint,
+      lowerIntersection: tangentPoint,
+    };
+  }
+
+  // Calculate the y-offset from the circle center using Pythagorean theorem
+  const yOffset = Math.sqrt(circle.r * circle.r - dx * dx);
+
+  return {
+    upperIntersection: { x: x, y: circle.y - yOffset }, // Upper point (smaller y)
+    lowerIntersection: { x: x, y: circle.y + yOffset }, // Lower point (larger y)
+  };
+}
+
+/**
+ * Calculates the intersection points between a horizontal line and a circle.
+ * @param y - The y-coordinate of the horizontal line.
+ * @param circle - The circle.
+ * @returns An object containing the left and right intersection points (if they exist).
+ */
+export function getHorizontalLineCircleIntersections(
+  y: number,
+  circle: Circle,
+): { leftIntersection: Point | null; rightIntersection: Point | null } {
+  // Distance from the line to the circle center
+  const dy = Math.abs(y - circle.y);
+
+  // If the distance is greater than the radius, no intersection exists
+  if (dy > circle.r) {
+    return {
+      leftIntersection: null,
+      rightIntersection: null,
+    };
+  }
+
+  // If the distance equals the radius, there's one tangent point
+  if (Math.abs(dy - circle.r) < EPSILON) {
+    const tangentPoint = { x: circle.x, y: y };
+    return {
+      leftIntersection: tangentPoint,
+      rightIntersection: tangentPoint,
+    };
+  }
+
+  // Calculate the x-offset from the circle center using Pythagorean theorem
+  const xOffset = Math.sqrt(circle.r * circle.r - dy * dy);
+
+  return {
+    leftIntersection: { x: circle.x - xOffset, y: y }, // Left point (smaller x)
+    rightIntersection: { x: circle.x + xOffset, y: y }, // Right point (larger x)
+  };
 }
