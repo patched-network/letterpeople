@@ -1,10 +1,10 @@
-import { pointAtAngle, midpoint, Circle } from "./geometry";
+import { pointAtAngle, midpoint, Circle, Point } from "./geometry";
 
 export function placeFaceFeatures(
   inner: Circle,
   outer: Circle,
   separation: number = 45,
-  mouthOffset?: number = 0,
+  mouthOffset: number = 0,
 ): {
   left: Point;
   right: Point;

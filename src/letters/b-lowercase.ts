@@ -15,6 +15,8 @@ import { EFFECTIVE_LOWERCASE_HEIGHT } from "./CONSTS";
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 70;
 const VIEWBOX_HEIGHT = 100;
+const DEFAULT_LIMB_THICKNESS = 20;
+const DEFAULT_OUTLINE_WIDTH = 2;
 
 /**
  * @internal
@@ -134,7 +136,7 @@ function renderB_lowercase(
 
   // --- Attachment Points Calculation ---
   const faceFeatures = placeFaceFeatures(innerCircle, outerCircle);
-  
+
   const attachments: AttachmentList = {
     // Eyes and mouth positioned using placeFaceFeatures utility
     leftEye: faceFeatures.left,
