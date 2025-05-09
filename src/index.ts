@@ -14,11 +14,11 @@ import type {
   MouthAttachment,
   EyesAttachment,
   EyeAttachment,
-  ArmAttachment,
   ArmsAttachment,
   // AttachmentAnimationOptions, // Not used directly in this file yet
   // attachmentTypes // Not used directly in this file yet
 } from "./attachments/types";
+import type { ArmAttachment } from "./attachments/arms";
 
 // Import SVG element creators (these are still needed)
 import {

@@ -140,6 +140,7 @@ export function createArm(options: ArmOptions): SVGGElement {
  */
 export interface ArmAttachment extends BaseController {
   readonly type: "arm";
+  readonly element: SVGGElement;
 
   /**
    * Rotates the arm to a specific angle.
@@ -266,12 +267,12 @@ class ArmControllerImpl extends BaseController implements ArmAttachment {
 
     const startAngle = this._currentAngle;
     const waveAngleRange = 30;
-    const waveDuration = options?.duration || 500;
-    const waveCount = options?.count || 3;
+    const waveDuration = typeof options?.duration === 'number' ? options.duration : 500;
+    const waveCount = typeof options?.count === 'number' ? options.count : 3;
 
     // Apply any initial delay
-    if (options?.delay) {
-      await new Promise((resolve) => setTimeout(resolve, options.delay));
+    if (options?.delay && typeof options.delay === 'number') {
+      await new Promise((resolve) => setTimeout(resolve, options.delay as number));
     }
 
     // Perform wave animation using sequential animations
@@ -391,7 +392,7 @@ class ArmsGroupControllerImpl implements ArmsAttachment {
 
   async wave(options?: AnimationParams): Promise<void> {
     // Stagger the wave animations slightly for a more natural effect
-    const rightArmDelay = options?.delay || 0;
+    const rightArmDelay = typeof options?.delay === 'number' ? options.delay : 0;
     const leftArmDelay = rightArmDelay + 150; // 150ms offset
 
     const rightOptions = { ...options, delay: rightArmDelay };
