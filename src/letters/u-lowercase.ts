@@ -69,31 +69,35 @@ function renderU_lowercase(
   };
 
   // Vertical stem position (right side of the character)
-  const stemRightEdgeX = W;
-  const stemLeftEdgeX = stemRightEdgeX - stemWidth;
+  const rightStemRightEdgeX = W;
+  const rightStemLeftEdgeX = rightStemRightEdgeX - stemWidth;
   const stemTopY = H - EFFECTIVE_LOWERCASE_HEIGHT; // Start at lowercase height
 
-  const stemUpperLeft: Point = {
-    x: stemLeftEdgeX,
+  // Vertical stem position (left side of the character)
+  const leftStemLeftEdgeX = 0;
+  const leftStemRightEdgeX = limbThickness;
+
+  const rightStemUpperLeft: Point = {
+    x: rightStemLeftEdgeX,
     y: stemTopY,
   };
-  const stemUpperRight: Point = {
-    x: stemRightEdgeX,
+  const rightStemUpperRight: Point = {
+    x: rightStemRightEdgeX,
     y: stemTopY,
   };
-  const stemBottomLeft: Point = {
-    x: stemLeftEdgeX,
+  const rightStemBottomLeft: Point = {
+    x: rightStemLeftEdgeX,
     y: H,
   };
-  const stemBottomRight: Point = {
-    x: stemRightEdgeX,
+  const rightStemBottomRight: Point = {
+    x: rightStemRightEdgeX,
     y: H,
   };
 
   // Calculate connection between stem and circle
-  // The stem connects to the circle along the line x = stemLeftEdgeX
+  // The stem connects to the circle along the line x = rightStemLeftEdgeX
   const connections = getVerticalLineCircleIntersections(
-    stemLeftEdgeX,
+    rightStemLeftEdgeX,
     outerCircle,
   );
   if (
@@ -101,7 +105,7 @@ function renderU_lowercase(
     connections.lowerIntersection === null
   ) {
     throw new Error(
-      `u's 'circle' (at x=${outerCircle.x}) is not joined to its stem (at x=${stemLeftEdgeX})! Radius: ${outerCircle.r}. Effective height: ${EFFECTIVE_LOWERCASE_HEIGHT}`,
+      `u's 'circle' (at x=${outerCircle.x}) is not joined to its stem (at x=${rightStemLeftEdgeX})! Radius: ${outerCircle.r}. Effective height: ${EFFECTIVE_LOWERCASE_HEIGHT}`,
     );
   }
 
@@ -112,25 +116,22 @@ function renderU_lowercase(
   const path = document.createElementNS(svgNS, "path");
   // Start at the upper connection point, then move clockwise for the outer shape
   const pathData = [
-    `M ${upperConnection.x} ${upperConnection.y}`, // Start at the upper connection point (stem's left, top-ish)
-    `L ${stemUpperLeft.x} ${stemUpperLeft.y}`, // Line to top left of stem
-    `L ${stemUpperRight.x} ${stemUpperRight.y}`, // Line to top right of stem
-    `L ${stemBottomRight.x} ${stemBottomRight.y}`, // Line to bottom right of stem
-    `L ${stemBottomLeft.x} ${stemBottomLeft.y}`, // Line to bottom left of stem
+    `M ${rightStemUpperLeft.x} ${circleCenterY}`, // Start at the upper connection point (stem's left, top-ish)
+    `L ${rightStemUpperLeft.x} ${rightStemUpperLeft.y}`, // Line to top left of stem
+    `L ${rightStemUpperRight.x} ${rightStemUpperRight.y}`, // Line to top right of stem
+    `L ${rightStemBottomRight.x} ${rightStemBottomRight.y}`, // Line to bottom right of stem
+    `L ${rightStemBottomLeft.x} ${rightStemBottomLeft.y}`, // Line to bottom left of stem
     `L ${lowerConnection.x} ${lowerConnection.y}`, // Line to the lower connection point (stem's left, bottom-ish)
-    // Arc from lower connection to upper connection, forming the left side of the 'u'
-    // Using large-arc-flag=1, sweep-flag=1
-    `A ${circleOuterRadius} ${circleOuterRadius} 0 1 1 ${upperConnection.x} ${upperConnection.y}`,
-    `Z`, // Close outer path
+    // Arc from lower connection to upper outside of left stem
+    // Using large-arc-flag=0, sweep-flag=1
+    `A ${circleOuterRadius} ${circleOuterRadius} 0 0 1 ${0} ${circleCenterY}`,
+    `L ${0} ${stemTopY}`, // to top of stem
+    `L ${limbThickness} ${stemTopY}`, // across top of stem
+    `L ${limbThickness} ${circleCenterY}`, // down to beginning of bend of stem
 
-    // Now draw the counter-clockwise inner circle to create the hole
-    // Start at the leftmost point of the inner circle
-    `M ${innerCircle.x - innerCircle.r} ${innerCircle.y}`,
-    // Arc 1: Draw a 180-degree semi-circle counter-clockwise to the rightmost point.
-    `A ${innerCircle.r} ${innerCircle.r} 0 0 0 ${innerCircle.x + innerCircle.r} ${innerCircle.y}`,
-    // Arc 2: Draw the second 180-degree semi-circle counter-clockwise back to the starting (leftmost) point.
-    `A ${innerCircle.r} ${innerCircle.r} 0 0 0 ${innerCircle.x - innerCircle.r} ${innerCircle.y}`,
-    `Z`, // Close inner path
+    `A ${circleInnerRadius} ${circleInnerRadius} 0 0 0 ${rightStemLeftEdgeX} ${circleCenterY}`,
+
+    `Z`, // Close outer path
   ].join(" ");
 
   path.setAttribute("d", pathData);
@@ -148,13 +149,13 @@ function renderU_lowercase(
 
   const attachments: AttachmentList = {
     // Eyes and mouth positioned using placeFaceFeatures utility
-    leftEye: faceFeatures.left,
-    rightEye: faceFeatures.right,
+    leftEye: { x: limbThickness / 2, y: stemTopY + 0.8 * limbThickness },
+    rightEye: { x: W - limbThickness / 2, y: stemTopY + 0.8 * limbThickness },
     mouth: faceFeatures.mouth,
 
     // Hat sits on top of the stem
     hat: {
-      x: (stemLeftEdgeX + stemRightEdgeX) / 2,
+      x: (rightStemLeftEdgeX + rightStemRightEdgeX) / 2,
       y: stemTopY - outlineWidth / 2,
     },
 
@@ -165,9 +166,9 @@ function renderU_lowercase(
       y: circleCenterY,
     },
     // Right arm on the stem
-    rightArm: { 
-      x: stemRightEdgeX - outlineWidth / 2, 
-      y: H * 0.7
+    rightArm: {
+      x: rightStemRightEdgeX - outlineWidth / 2,
+      y: H * 0.7,
     },
 
     // Legs
@@ -177,9 +178,9 @@ function renderU_lowercase(
       y: H - outlineWidth / 2,
     },
     // Right leg at the bottom of the stem
-    rightLeg: { 
-      x: (stemLeftEdgeX + stemRightEdgeX) / 2, 
-      y: H - outlineWidth / 2 
+    rightLeg: {
+      x: (rightStemLeftEdgeX + rightStemRightEdgeX) / 2,
+      y: H - outlineWidth / 2,
     },
   };
 
