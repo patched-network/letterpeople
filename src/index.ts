@@ -39,8 +39,12 @@ import {
 
 // Import letter implementations
 import A from "./letters/A-uppercase";
+import a from "./letters/a-lowercase";
+import b from "./letters/b-lowercase";
 import c from "./letters/c-lowercase";
 import C from "./letters/C-uppercase";
+import d from "./letters/d-lowercase";
+import D from "./letters/D-uppercase";
 import E from "./letters/E-uppercase";
 import F from "./letters/F-uppercase";
 import G from "./letters/G-uppercase";
@@ -49,56 +53,62 @@ import i from "./letters/i-lowercase";
 import I from "./letters/I-uppercase";
 import L from "./letters/L-uppercase";
 import l from "./letters/l-lowercase";
-import O from "./letters/O-uppercase";
-import D from "./letters/D-uppercase";
 import M from "./letters/M-uppercase";
 import N from "./letters/N-uppercase";
-import P from "./letters/P-uppercase";
-import W from "./letters/W-uppercase";
-import X from "./letters/X-uppercase";
-import Y from "./letters/Y-uppercase";
 import o from "./letters/o-lowercase";
+import O from "./letters/O-uppercase";
+import p from "./letters/p-lowercase";
+import P from "./letters/P-uppercase";
+import q from "./letters/q-lowercase";
 import Q from "./letters/Q-uppercase";
 import R from "./letters/R-uppercase";
 import S from "./letters/S-uppercase";
 import T from "./letters/T-uppercase";
 import V from "./letters/V-uppercase";
 import v from "./letters/v-lowercase";
+import W from "./letters/W-uppercase";
 import w from "./letters/w-lowercase";
+import X from "./letters/X-uppercase";
 import x from "./letters/x-lowercase";
+import Y from "./letters/Y-uppercase";
 
 // Map letters to their rendering functions
 const letterRenderers: {
   [key: string]: (options?: LetterOptions) => InternalLetterRenderResult;
 } = {
   A: A,
+  a: a,
+  b: b,
   c: c,
   C: C,
+  d: d,
+  D: D,
   E: E,
   F: F,
   G: G,
   i: i,
   I: I,
   H: H,
-  D: D,
   L: L,
+  l: l,
   M: M,
   N: N,
-  P: P,
-  W: W,
-  X: X,
-  Y: Y,
-  l: l,
-  O: O,
   o: o,
+  O: O,
+  p: p,
+  P: P,
+  q: q,
   Q: Q,
   R: R,
   S: S,
   T: T,
   V: V,
   v: v,
+  W: W,
   w: w,
+  X: X,
   x: x,
+  Y: Y,
 };
 
 // Default parameters for the mouth if not provided (still relevant for initial creation)
