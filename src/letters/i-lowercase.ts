@@ -34,7 +34,9 @@ function renderI_lowercase(
 
   // --- Options Processing ---
   const stemThickness = options?.lineWidth ?? DEFAULT_STEM_THICKNESS;
-  const dotDiameter = options?.lineWidth ? options.lineWidth * 1.6 : DEFAULT_DOT_DIAMETER;
+  const dotDiameter = options?.lineWidth
+    ? options.lineWidth * 1.6
+    : DEFAULT_DOT_DIAMETER;
   const fillColor = options?.color ?? "currentColor";
   const outlineColor = options?.borderColor ?? "black";
   const outlineWidth = options?.borderWidth ?? DEFAULT_OUTLINE_WIDTH;
@@ -45,20 +47,20 @@ function renderI_lowercase(
   // --- Calculate positions ---
   const W = VIEWBOX_WIDTH;
   const H = VIEWBOX_HEIGHT;
-  
+
   // Center the stem horizontally
   const stemCenterX = W / 2;
   const stemLeft = stemCenterX - stemThickness / 2;
   const stemRight = stemCenterX + stemThickness / 2;
-  
+
   // Dot is centered over the stem
   const dotRadius = dotDiameter / 2;
   const dotCenterX = stemCenterX;
   const dotCenterY = dotRadius + outlineWidth;
-  
+
   // Stem starts below the dot with a gap
   const stemTop = dotCenterY + dotRadius + DOT_GAP;
-  
+
   // --- Create the dot (circle) ---
   const dot = document.createElementNS(svgNS, "circle");
   dot.setAttribute("cx", String(dotCenterX));
@@ -67,7 +69,7 @@ function renderI_lowercase(
   dot.setAttribute("fill", fillColor);
   dot.setAttribute("stroke", outlineColor);
   dot.setAttribute("stroke-width", String(outlineWidth));
-  
+
   // --- Create the stem (rectangle) ---
   const stem = document.createElementNS(svgNS, "rect");
   stem.setAttribute("x", String(stemLeft));
@@ -77,11 +79,11 @@ function renderI_lowercase(
   stem.setAttribute("fill", fillColor);
   stem.setAttribute("stroke", outlineColor);
   stem.setAttribute("stroke-width", String(outlineWidth));
-  
+
   // Add elements to group
   group.appendChild(dot);
   group.appendChild(stem);
-  
+
   // Add group to the SVG
   svg.appendChild(group);
 
@@ -89,19 +91,31 @@ function renderI_lowercase(
   // For the 'i', we'll put facial features on the dot
   const attachments: AttachmentList = {
     // Eyes in the upper part of the dot
-    leftEye: { x: dotCenterX - dotRadius * 0.3, y: dotCenterY - dotRadius * 0.2 },
-    rightEye: { x: dotCenterX + dotRadius * 0.3, y: dotCenterY - dotRadius * 0.2 },
-    
+    leftEye: {
+      x: dotCenterX - dotRadius * 0.3,
+      y: dotCenterY - dotRadius * 0.4,
+    },
+    rightEye: {
+      x: dotCenterX + dotRadius * 0.3,
+      y: dotCenterY - dotRadius * 0.4,
+    },
+
     // Mouth in the lower part of the dot
     mouth: { x: dotCenterX, y: dotCenterY + dotRadius * 0.3 },
-    
+
     // Hat sits on top of the dot
     hat: { x: dotCenterX, y: dotCenterY - dotRadius - outlineWidth / 2 },
-    
+
     // Arms at the middle of the stem
-    leftArm: { x: stemLeft - outlineWidth / 2, y: stemTop + (H - stemTop) * 0.4 },
-    rightArm: { x: stemRight + outlineWidth / 2, y: stemTop + (H - stemTop) * 0.4 },
-    
+    leftArm: {
+      x: stemLeft - outlineWidth / 2,
+      y: stemTop + (H - stemTop) * 0.4,
+    },
+    rightArm: {
+      x: stemRight + outlineWidth / 2,
+      y: stemTop + (H - stemTop) * 0.4,
+    },
+
     // Legs at the bottom of the stem
     leftLeg: { x: stemCenterX - stemThickness * 0.3, y: H - outlineWidth / 2 },
     rightLeg: { x: stemCenterX + stemThickness * 0.3, y: H - outlineWidth / 2 },
