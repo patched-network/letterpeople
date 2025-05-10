@@ -18,6 +18,7 @@ const VIEWBOX_WIDTH = 70;
 // Constants for the letter's appearance
 const DEFAULT_LIMB_THICKNESS = 10;
 const DEFAULT_OUTLINE_WIDTH = 1;
+const DEFAULT_DOT_DIAMETER = 32;
 
 /**
  * @internal
