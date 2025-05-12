@@ -1,43 +1,56 @@
 import { defineConfig } from "vite";
 import path from "path";
-import dts from "vite-plugin-dts"; // You might need: yarn add -D vite-plugin-dts
+import dts from "vite-plugin-dts";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [
+    // Add Vue plugin to process Vue components
+    vue(),
+    
+    // Generate TypeScript declaration files
     dts({
-      // Generates .d.ts files correctly in dist
       insertTypesEntry: true,
+      // Include both entry points for type generation
+      include: ["src/**/*.ts", "src/**/*.vue"],
+      // Properly handle .vue files in declaration output
+      beforeWriteFile: (filePath, content) => {
+        return {
+          filePath: filePath,
+          content: content,
+        };
+      }
     }),
   ],
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
-      name: "AnimatedLetters", // Global variable name for UMD build
-      fileName: (format) => `animated-letters.${format}.js`,
-      formats: ["es", "umd"], // Output formats
+      // Define both entry points
+      entry: {
+        'letterpeople': path.resolve(__dirname, "src/index.ts"),
+        'letterpeople-vue': path.resolve(__dirname, "src/vue/index.ts"),
+      },
+      formats: ["es", "umd"],
+      // The fileName callback creates separate files for each entry point
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      // Make sure to externalize deps that shouldn't be bundled
-      // into your library (if any, e.g., if animejs is a peer dep)
-      // external: ['animejs'],
+      // Make Vue a peer dependency so it's not bundled with the library
+      external: ['vue'],
       output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
+        // Provide global variable names for external dependencies
         globals: {
-          // animejs: 'anime' // If animejs were external
+          vue: 'Vue'
         },
       },
     },
     sourcemap: true, // Generate source maps for debugging
   },
-  // Configure dev server 
   server: {
     open: true, // Automatically open the browser
   },
   resolve: {
     alias: {
-      // Optional: makes imports cleaner
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, "./src"),
     },
   },
   // Configure root directory for dev server
