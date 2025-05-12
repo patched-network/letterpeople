@@ -4,7 +4,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, defineProps, defineExpose, defineEmits } from 'vue';
-import { createLetter, LetterInstance } from '../index';
+import { createLetter } from '../index';
+import type { LetterInstance } from '../types';
 import type { LetterPersonProps, LetterPersonEmits } from './types';
 
 const props = defineProps<LetterPersonProps>();

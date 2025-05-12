@@ -1,23 +1,22 @@
 // Vue integration entry point for LetterPeople
 // This file exports Vue-specific components and utilities
 
+// Component exports
 import LetterPersonComponent from './LetterPerson.vue';
-import type { LetterPersonRef, LetterPersonProps, LetterPersonEmits } from './types';
 
-// Default export for typical component usage
+// Export the Vue component as default export
 export default LetterPersonComponent;
 
-// Named exports for component and types
+// Named exports for component
 export { LetterPersonComponent };
-export type { LetterPersonRef, LetterPersonProps, LetterPersonEmits };
+
+// Export types
+export * from './types';
 
 // Re-export types from the main library that Vue users might need
-export type { 
-  LetterInstance, 
-  LetterOptions, 
-  MouthParameters, 
-  MouthAppearanceOptions 
+export type {
+  LetterInstance,
+  LetterOptions,
+  MouthParameters,
+  MouthAppearanceOptions
 } from '../types';
-
-// Future composables exports will be here
-// export { useLetterPeople } from './composables/useLetterPeople';
