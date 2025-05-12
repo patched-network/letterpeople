@@ -1,0 +1,182 @@
+# LetterPeople
+
+> LetterPeople is a TypeScript library that creates animated letter characters with facial features. The library renders letters as SVG elements with attachments like eyes and mouths that can be animated (blinking, speaking, etc.).
+
+## Overview
+
+LetterPeople offers a simple way to create engaging, personified letter characters as SVG elements. Each letter can have animated features like eyes, mouth, and arms with a component-based API that makes it easy to control these elements individually.
+
+## Core API Usage
+
+```javascript
+// Basic usage
+import { createLetter } from 'letterpeople';
+
+// Create a container element
+const container = document.createElement('div');
+document.body.appendChild(container);
+
+// Create an animated letter
+const letterL = createLetter('L', container, {
+  color: '#add8e6',       // Letter fill color
+  lineWidth: 25,          // Thickness of letter
+  borderColor: '#333333', // Letter outline color
+  borderWidth: 4,         // Letter outline thickness
+  mouthParams: {
+    openness: 0.1,        // How open the mouth is (0-1)
+    mood: 0.7             // How happy/sad the mouth is (0-1)
+  },
+  eyeSize: 8,             // Size of the eyes
+  armLength: 15,          // Length of arms
+  armThickness: 3,        // Thickness of arms
+  armColor: '#333333'     // Color of arms
+});
+
+// Animate the letter
+letterL.mouth.animateSpeak();  // Make the mouth speak
+letterL.eyes.blink();          // Make the eyes blink
+letterL.arms.wave();           // Make the arms wave
+
+// Control individual parts
+letterL.mouth.updateShape({ openness: 0.5, mood: 0.2 });
+letterL.arms.left.rotateTo(45);  // Rotate left arm to 45 degrees
+letterL.arms.right.setLength(20); // Change right arm length
+
+// Show/hide attachments
+letterL.eyes.hide();  // Hide the eyes
+letterL.mouth.show(); // Show the mouth
+
+// Cleanup when done
+letterL.destroy();
+```
+
+## Vue Integration
+
+LetterPeople includes a Vue 3 component for easy integration:
+
+```vue
+<template>
+  <div class="letter-container">
+    <LetterPerson
+      :letter="currentLetter"
+      :options="letterOptions"
+      ref="letterRef"
+      @created="onLetterCreated"
+    />
+    
+    <button @click="animateMouth">Speak</button>
+    <button @click="blinkEyes">Blink</button>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue';
+import LetterPerson from 'letterpeople/vue';
+
+const currentLetter = ref('L');
+const letterRef = ref(null);
+const letterOptions = reactive({
+  color: '#add8e6',
+  lineWidth: 25,
+  borderColor: '#333333',
+  borderWidth: 4,
+  mouthParams: {
+    openness: 0.2,
+    mood: 0.7
+  }
+});
+
+const animateMouth = () => {
+  letterRef.value?.animateMouth();
+};
+
+const blinkEyes = () => {
+  letterRef.value?.blink();
+};
+</script>
+```
+
+## Available Letters
+
+LetterPeople supports the following characters:
+- Uppercase: A, C, D, E, F, G, H, I, J, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y
+- Lowercase: a, b, c, d, h, i, j, l, m, n, o, p, q, r, u, v, w, x
+
+## API Reference
+
+### Letter Options
+
+```typescript
+interface LetterOptions {
+  // Base letter appearance
+  color?: string;            // Fill color of the letter
+  lineWidth?: number;        // Thickness of the letter strokes
+  borderColor?: string;      // Outline color
+  borderWidth?: number;      // Outline thickness
+  style?: "sans-serif" | "serif";
+  debug?: boolean;           // Show debug elements like baselines
+  
+  // Eye options
+  eyeSize?: number;          // Size of the eyes
+  
+  // Mouth options
+  mouthParams?: {
+    openness: number;        // 0-1, how open the mouth is
+    mood: number;            // 0-1, 0=sad, 0.5=neutral, 1=happy
+  };
+  mouthAppearance?: {
+    fillColor?: string;      // Interior color of mouth
+    strokeColor?: string;    // Outline color of mouth
+    strokeWidth?: number;    // Thickness of mouth outline
+  };
+  
+  // Arm options
+  armLength?: number;        // Length of the arms
+  armThickness?: number;     // Thickness of the arms
+  armColor?: string;         // Color of the arms
+}
+```
+
+### Letter Instance API
+
+Each `createLetter` call returns a `LetterInstance` with:
+
+```typescript
+interface LetterInstance {
+  svgElement: SVGElement;        // The root SVG element
+  character: string;             // The letter character
+  parentElement: Element;        // Container element
+  
+  mouth: {
+    show(): Promise<void>;
+    hide(): Promise<void>;
+    updateShape(params: { openness: number, mood: number }): Promise<void>;
+    animateSpeak(options?: object): Promise<void>;
+  };
+  
+  eyes: {
+    left: { show(), hide(), wink() };
+    right: { show(), hide(), wink() };
+    show(): Promise<void>;
+    hide(): Promise<void>;
+    blink(options?: object): Promise<void>;
+  };
+  
+  arms: {
+    left: { rotateTo(angle), setLength(length), wave() };
+    right: { rotateTo(angle), setLength(length), wave() };
+    show(): Promise<void>;
+    hide(): Promise<void>;
+    wave(options?: object): Promise<void>;
+  };
+  
+  destroy(): void;  // Remove the letter and clean up
+}
+```
+
+## Tips for Best Results
+
+- Use a container with sufficient width/height to display the letter properly
+- For lowercase letters with descenders (g, j, p, q, y), ensure extra vertical space
+- For responsive layouts, apply CSS scaling to the container rather than the SVG
+- When animating multiple letters, stagger the animations for a more natural effect

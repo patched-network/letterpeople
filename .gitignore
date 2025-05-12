@@ -2,6 +2,9 @@ node_modules
 
 dist
 
+# Generated files
+dev/llms.txt
+
 .yarn/*
 !.yarn/patches
 !.yarn/plugins

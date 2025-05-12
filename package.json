@@ -22,11 +22,11 @@
   ],
   "packageManager": "yarn@4.6.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "cp llms.txt dev/llms.txt && vite",
     "build:core": "tsc && cross-env BUILD_TARGET=core vite build",
     "build:vue": "tsc && cross-env BUILD_TARGET=vue vite build",
     "build": "yarn build:core && yarn build:vue",
-    "build:demo": "vite build --config vite.config.demo.ts",
+    "build:demo": "vite build --config vite.config.demo.ts && cp llms.txt demo-dist/",
     "examples": "vite --config vite.config.examples.ts",
     "build:examples": "vite build --config vite.config.examples.ts",
     "prepublishOnly": "yarn build"
