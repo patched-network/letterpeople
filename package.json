@@ -1,6 +1,6 @@
 {
   "name": "letterpeople",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A TypeScript library for creating animated letter characters with facial features",
   "main": "./dist/letterpeople.umd.js",
   "module": "./dist/letterpeople.es.js",
