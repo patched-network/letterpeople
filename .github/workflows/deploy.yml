@@ -58,6 +58,9 @@ jobs:
       - name: Build demo site
         run: yarn build:demo
 
+      - name: Copy llms.txt to demo-dist
+        run: cp llms.txt demo-dist/ || echo "llms.txt already copied by build script"
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
 
