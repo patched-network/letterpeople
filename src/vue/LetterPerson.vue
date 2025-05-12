@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, defineProps, defineExpose, defineEmits } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { createLetter } from '../index';
 import type { LetterInstance } from '../types';
 import type { LetterPersonProps, LetterPersonEmits } from './types';
