@@ -5,14 +5,30 @@
   "main": "./dist/letterpeople.umd.js",
   "module": "./dist/letterpeople.es.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/letterpeople.es.js",
+      "require": "./dist/letterpeople.umd.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/letterpeople-vue.es.js",
+      "require": "./dist/letterpeople-vue.umd.js"
+    }
+  },
   "files": [
     "dist"
   ],
   "packageManager": "yarn@4.6.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:core": "tsc && cross-env BUILD_TARGET=core vite build",
+    "build:vue": "tsc && cross-env BUILD_TARGET=vue vite build",
+    "build": "yarn build:core && yarn build:vue",
     "build:demo": "vite build --config vite.config.demo.ts",
+    "examples": "vite --config vite.config.examples.ts",
+    "build:examples": "vite build --config vite.config.examples.ts",
     "prepublishOnly": "yarn build"
   },
   "repository": {
@@ -35,10 +51,16 @@
   "dependencies": {
     "animejs": "^4.0.2"
   },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
   "devDependencies": {
     "@types/node": "^22.15.3",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "cross-env": "^7.0.3",
     "typescript": "^5.8.3",
     "vite": "^6.3.4",
-    "vite-plugin-dts": "^4.5.3"
+    "vite-plugin-dts": "^4.5.3",
+    "vue": "^3.0.0"
   }
 }

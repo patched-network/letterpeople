@@ -1,45 +1,98 @@
 import { defineConfig } from "vite";
 import path from "path";
-import dts from "vite-plugin-dts"; // You might need: yarn add -D vite-plugin-dts
+import dts from "vite-plugin-dts";
+import vue from "@vitejs/plugin-vue";
 
-export default defineConfig({
+// Create separate configs for core and Vue builds
+const baseConfig = {
   plugins: [
     dts({
-      // Generates .d.ts files correctly in dist
       insertTypesEntry: true,
     }),
   ],
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
-      name: "AnimatedLetters", // Global variable name for UMD build
-      fileName: (format) => `animated-letters.${format}.js`,
-      formats: ["es", "umd"], // Output formats
-    },
-    rollupOptions: {
-      // Make sure to externalize deps that shouldn't be bundled
-      // into your library (if any, e.g., if animejs is a peer dep)
-      // external: ['animejs'],
-      output: {
-        // Provide global variables to use in the UMD build
-        // for externalized deps
-        globals: {
-          // animejs: 'anime' // If animejs were external
-        },
-      },
-    },
-    sourcemap: true, // Generate source maps for debugging
-  },
-  // Configure dev server 
-  server: {
-    open: true, // Automatically open the browser
+    sourcemap: true,
   },
   resolve: {
     alias: {
-      // Optional: makes imports cleaner
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, "./src"),
     },
   },
-  // Configure root directory for dev server
+  server: {
+    open: true,
+  },
   root: path.resolve(__dirname, "dev"),
+};
+
+// We need to use command to determine if we're building core or Vue
+export default defineConfig(({ command }) => {
+  // If we're in serve mode, return the dev config
+  if (command === 'serve') {
+    return baseConfig;
+  }
+
+  // Otherwise, determine which build to run based on env variable
+  const buildTarget = process.env.BUILD_TARGET || 'core';
+  
+  if (buildTarget === 'vue') {
+    // Vue integration build
+    return {
+      ...baseConfig,
+      plugins: [
+        vue(),
+        dts({
+          insertTypesEntry: true,
+          include: ["src/vue/**/*.ts", "src/vue/**/*.vue"],
+          outDir: 'dist/vue',
+        }),
+      ],
+      build: {
+        ...baseConfig.build,
+        lib: {
+          entry: path.resolve(__dirname, "src/vue/index.ts"),
+          name: "LetterPeopleVue",
+          fileName: (format) => `letterpeople-vue.${format}.js`,
+          formats: ["es", "umd"],
+        },
+        rollupOptions: {
+          external: ['vue'],
+          output: {
+            exports: "named",
+            globals: {
+              vue: 'Vue'
+            },
+          },
+        },
+        outDir: 'dist',
+      },
+    };
+  }
+  
+  // Default core build
+  return {
+    ...baseConfig,
+    plugins: [
+      dts({
+        insertTypesEntry: true,
+        include: ["src/**/*.ts", "!src/vue/**/*.ts", "!src/vue/**/*.vue"],
+        outDir: 'dist',
+      }),
+    ],
+    build: {
+      ...baseConfig.build,
+      lib: {
+        entry: path.resolve(__dirname, "src/index.ts"),
+        name: "LetterPeople",
+        fileName: (format) => `letterpeople.${format}.js`,
+        formats: ["es", "umd"],
+      },
+      rollupOptions: {
+        output: {
+          exports: "named",
+          globals: {},
+        },
+      },
+      outDir: 'dist',
+    },
+  };
 });

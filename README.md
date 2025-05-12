@@ -12,6 +12,16 @@ You can see LetterPeople in action on our [GitHub Pages demo site](https://usern
 yarn add letterpeople
 ```
 
+### Vue Integration
+
+LetterPeople includes a Vue 3 integration. Import Vue components from the `/vue` subpath:
+
+```js
+import LetterPerson from 'letterpeople/vue';
+```
+
+See the [examples directory](./examples) for Vue usage examples.
+
 ## Usage
 
 ```typescript
@@ -49,6 +59,9 @@ yarn dev
 
 # Build for production
 yarn build
+
+# Run Vue examples
+yarn examples
 ```
 
 ## GitHub Pages
