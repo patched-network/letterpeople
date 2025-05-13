@@ -254,7 +254,7 @@ export function createLetter(
     contentGroup.appendChild(leftEyeSvgElement);
     leftEyeCtrl = createEyeController(leftEyeSvgElement, {
       size: options?.eyeSize,
-    });
+    }, attachmentCoords.leftEye);
 
     let rightEyeCtrl: EyeAttachment;
 
@@ -266,7 +266,7 @@ export function createLetter(
     contentGroup.appendChild(rightEyeSvgElement);
     rightEyeCtrl = createEyeController(rightEyeSvgElement, {
       size: options?.eyeSize,
-    });
+    }, attachmentCoords.rightEye);
 
     // Create the eyes group controller
     const eyesController: EyesAttachment = createEyesGroupController(

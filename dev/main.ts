@@ -62,6 +62,31 @@ const armLengthSlider = document.getElementById(
 const armLengthValue = document.getElementById(
   "arm-length-value",
 ) as HTMLSpanElement | null;
+// Eye controls
+const eyeAngleSlider = document.getElementById(
+  "eye-angle-slider"
+) as HTMLInputElement | null;
+const eyeAngleValue = document.getElementById(
+  "eye-angle-value"
+) as HTMLSpanElement | null;
+const eyeDistanceSlider = document.getElementById(
+  "eye-distance-slider"
+) as HTMLInputElement | null;
+const eyeDistanceValue = document.getElementById(
+  "eye-distance-value"
+) as HTMLSpanElement | null;
+const trackCursorButton = document.getElementById(
+  "track-cursor-button"
+) as HTMLButtonElement | null;
+const eyeTrackingCheckbox = document.getElementById(
+  "eye-tracking-checkbox"
+) as HTMLInputElement | null;
+const trackingIntensitySlider = document.getElementById(
+  "tracking-intensity-slider"
+) as HTMLInputElement | null;
+const trackingIntensityValue = document.getElementById(
+  "tracking-intensity-value"
+) as HTMLSpanElement | null;
 // Debug controls
 const showAttachmentsCheckbox = document.getElementById(
   "show-attachments-checkbox",
@@ -87,6 +112,14 @@ const blinkButton = document.getElementById(
 const waveArmsButton = document.getElementById(
   "wave-arms-button",
 ) as HTMLButtonElement | null;
+
+// Track mouse position globally
+let globalMouseX = 0;
+let globalMouseY = 0;
+document.addEventListener("mousemove", (e) => {
+  globalMouseX = e.clientX;
+  globalMouseY = e.clientY;
+});
 
 // --- State ---
 let currentText: string =
@@ -121,6 +154,8 @@ let showMouth: boolean = true;
 let showArms: boolean = true;
 let showBaseline: boolean = false;
 let letterSize: number = 80;
+let eyeTracking: boolean = false;
+let trackingIntensity: number = 0.5;
 let renderedInstances: LetterInstance[] = []; // Store rendered instances
 
 // --- Helper: Visualize Attachment Points ---
@@ -160,6 +195,9 @@ function renderLetters() {
     return;
   }
 
+  // Store previous tracking state
+  const wasTracking = eyeTracking;
+
   // Clean up old instances first
   renderedInstances.forEach((instance) => instance.destroy());
   renderedInstances = [];
@@ -197,6 +235,13 @@ function renderLetters() {
       }
       if (!showArms && letterInstance.arms) {
         letterInstance.arms.hide();
+      }
+      
+      // Set up eye tracking if enabled
+      if (eyeTracking && letterInstance.eyes) {
+        letterInstance.eyes.startTracking({
+          intensity: trackingIntensity
+        });
       }
       
       displayArea.appendChild(wrapper);
@@ -269,7 +314,15 @@ function setupEventListeners() {
     !sizeSlider ||
     !sizeValueDisplay ||
     !animateMouthButton ||
-    !blinkButton
+    !blinkButton ||
+    !eyeAngleSlider ||
+    !eyeAngleValue ||
+    !eyeDistanceSlider ||
+    !eyeDistanceValue ||
+    !trackCursorButton ||
+    !eyeTrackingCheckbox ||
+    !trackingIntensitySlider ||
+    !trackingIntensityValue
   ) {
     console.error("One or more control inputs are missing!");
     return;
@@ -402,6 +455,138 @@ function setupEventListeners() {
     });
   });
   
+  // Eye angle slider - controls direction of pupil
+  eyeAngleSlider?.addEventListener("input", (event) => {
+    const angle = parseInt((event.target as HTMLInputElement).value, 10);
+    if (eyeAngleValue) eyeAngleValue.textContent = `${angle}°`;
+    
+    // Update eye direction
+    renderedInstances.forEach((instance) => {
+      // Calculate distance too
+      const distance = eyeDistanceSlider ? 
+        parseInt(eyeDistanceSlider.value, 10) / 100 : 0.5;
+      
+      // If tracking is active, temporarily disable it
+      const wasTracking = eyeTracking;
+      if (wasTracking) {
+        instance.eyes.stopTracking();
+      }
+      
+      // Look at the angle with the specified distance
+      instance.eyes.lookAt(angle, {
+        duration: 150
+      });
+      
+      // Restore tracking if it was active
+      if (wasTracking) {
+        setTimeout(() => {
+          instance.eyes.startTracking({
+            intensity: trackingIntensity
+          });
+        }, 200);
+      }
+    });
+  });
+  
+  // Eye distance slider - controls how far the pupil moves
+  eyeDistanceSlider?.addEventListener("input", (event) => {
+    const distance = parseInt((event.target as HTMLInputElement).value, 10);
+    if (eyeDistanceValue) eyeDistanceValue.textContent = `${distance}%`;
+    
+    // Use the current angle from the angle slider
+    const angle = eyeAngleSlider ? 
+      parseInt(eyeAngleSlider.value, 10) : 0;
+    
+    // Update all eyes
+    renderedInstances.forEach((instance) => {
+      // If tracking is active, temporarily disable it
+      const wasTracking = eyeTracking;
+      if (wasTracking) {
+        instance.eyes.stopTracking();
+      }
+      
+      // Look at the angle with the new distance
+      instance.eyes.lookAt(angle, {
+        duration: 150 
+      });
+      
+      // Restore tracking if it was active
+      if (wasTracking) {
+        setTimeout(() => {
+          instance.eyes.startTracking({
+            intensity: trackingIntensity
+          });
+        }, 200);
+      }
+    });
+  });
+  
+  // Track cursor button
+  trackCursorButton?.addEventListener("click", () => {
+    // Toggle eye tracking
+    eyeTracking = !eyeTracking;
+    
+    // Update checkbox state
+    if (eyeTrackingCheckbox) {
+      eyeTrackingCheckbox.checked = eyeTracking;
+    }
+    
+    // Enable/disable tracking intensity slider
+    if (trackingIntensitySlider) {
+      trackingIntensitySlider.disabled = !eyeTracking;
+    }
+    
+    // Apply to all eyes
+    renderedInstances.forEach((instance) => {
+      if (eyeTracking) {
+        instance.eyes.startTracking({
+          intensity: trackingIntensity
+        });
+      } else {
+        instance.eyes.stopTracking();
+      }
+    });
+  });
+  
+  // Eye tracking checkbox 
+  eyeTrackingCheckbox?.addEventListener("change", (event) => {
+    eyeTracking = (event.target as HTMLInputElement).checked;
+    
+    // Enable/disable tracking intensity slider
+    if (trackingIntensitySlider) {
+      trackingIntensitySlider.disabled = !eyeTracking;
+    }
+    
+    // Apply to all eyes
+    renderedInstances.forEach((instance) => {
+      if (eyeTracking) {
+        instance.eyes.startTracking({
+          intensity: trackingIntensity
+        });
+      } else {
+        instance.eyes.stopTracking();
+      }
+    });
+  });
+  
+  // Tracking intensity slider
+  trackingIntensitySlider?.addEventListener("input", (event) => {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    trackingIntensity = value / 100;
+    if (trackingIntensityValue) trackingIntensityValue.textContent = `${value}%`;
+    
+    // Update tracking intensity for active eyes
+    if (eyeTracking) {
+      renderedInstances.forEach((instance) => {
+        // Need to restart tracking with new intensity
+        instance.eyes.stopTracking();
+        instance.eyes.startTracking({
+          intensity: trackingIntensity
+        });
+      });
+    }
+  });
+  
   // Wave Arms Button
   waveArmsButton?.addEventListener("click", () => {
     renderedInstances.forEach((i) => {
@@ -460,7 +645,15 @@ document.addEventListener("DOMContentLoaded", () => {
     rightArmAngleSlider &&
     rightArmAngleValue &&
     armLengthSlider &&
-    armLengthValue
+    armLengthValue &&
+    eyeAngleSlider &&
+    eyeAngleValue &&
+    eyeDistanceSlider &&
+    eyeDistanceValue &&
+    trackCursorButton &&
+    eyeTrackingCheckbox &&
+    trackingIntensitySlider &&
+    trackingIntensityValue
   ) {
     // Set initial state from HTML values
     currentText = textInput.value;
@@ -486,6 +679,8 @@ document.addEventListener("DOMContentLoaded", () => {
     showArms = showArmsCheckbox.checked;
     showBaseline = showBaselineCheckbox?.checked || false;
     letterSize = parseInt(sizeSlider.value, 10);
+    eyeTracking = eyeTrackingCheckbox?.checked || false;
+    trackingIntensity = trackingIntensitySlider ? parseInt(trackingIntensitySlider.value, 10) / 100 : 0.5;
 
     // Set initial display values for sliders
     sizeValueDisplay.textContent = `${letterSize}px`;
@@ -497,6 +692,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (leftArmAngleValue) leftArmAngleValue.textContent = "150°";
     if (rightArmAngleValue) rightArmAngleValue.textContent = "30°";
     if (armLengthValue) armLengthValue.textContent = currentOptions.armLength!.toFixed(1);
+    
+    // Set initial display values for eye controls
+    if (eyeAngleValue) eyeAngleValue.textContent = "0°";
+    if (eyeDistanceValue) eyeDistanceValue.textContent = "50%";
+    if (trackingIntensityValue) trackingIntensityValue.textContent = "50%";
+    
+    // Enable/disable tracking intensity slider based on initial state
+    if (trackingIntensitySlider) {
+      trackingIntensitySlider.disabled = !eyeTracking;
+    }
 
     setupEventListeners();
     renderLetters(); // Initial render

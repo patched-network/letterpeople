@@ -1,6 +1,8 @@
 # LetterPeople
 
-LetterPeople is a TypeScript library that creates animated letter characters with facial features. The library renders letters as SVG elements with attachments like eyes and mouths that can be animated (blinking, speaking, etc.).
+Animated letter characters with facial features.
+
+Renders letters as SVG elements with attachments like eyes and mouths that can be animated (blinking, looking, speaking, etc.).
 
 ## Demo
 
@@ -46,7 +48,20 @@ const letterL = createLetter('L', container, {
 // Animate the letter
 letterL.mouth.animateSpeak();
 letterL.eyes.blink();
+letterL.eyes.lookAt(45); // Look at 45 degree angle
+letterL.eyes.lookAt({x: 5, y: -2}); // Look at specific coordinates
+letterL.eyes.startTracking({intensity: 0.7}); // Follow the cursor with 70% intensity
+letterL.eyes.stopTracking(); // Stop following the cursor
 ```
+
+## Features
+
+- SVG-based letter rendering with clean scaling
+- Animated facial features (eyes, mouth)
+- Interactive eye tracking that follows the cursor
+- Arm animations
+- Vue 3 component integration
+- Typescript support
 
 ## Development
 

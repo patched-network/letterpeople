@@ -106,7 +106,11 @@ export class BaseController implements BaseAttachment {
 
   stopAnimations(): void {
     if (this._currentAnimation) {
-      this._currentAnimation.cancel(); // cancel() stops the animation and removes it from the engine.
+      try {
+        this._currentAnimation.revert(); // stops the animation and removes it from the engine.
+      } catch (e) {
+        console.warn("Animation couldn't be stopped cleanly:", e);
+      }
       this._currentAnimation = null;
     }
   }

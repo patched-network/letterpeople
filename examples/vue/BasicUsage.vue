@@ -48,32 +48,71 @@
         </label>
       </div>
       
+      <div class="eye-controls">
+        <label>
+          Eye Direction:
+          <input 
+            type="range" 
+            min="0" 
+            max="360" 
+            step="15" 
+            v-model.number="eyeAngle" 
+          />
+          {{ eyeAngle }}°
+        </label>
+        
+        <div class="tracking-controls">
+          <label>
+            <input type="checkbox" v-model="eyeTracking" />
+            Track Cursor
+          </label>
+          
+          <label v-if="eyeTracking">
+            Intensity:
+            <input 
+              type="range" 
+              min="0" 
+              max="1" 
+              step="0.05" 
+              v-model.number="trackingIntensity" 
+            />
+            {{ trackingIntensity.toFixed(2) }}
+          </label>
+        </div>
+      </div>
+      
       <div class="actions">
         <button @click="animateMouth">Speak</button>
         <button @click="blinkEyes">Blink</button>
         <button @click="waveArms">Wave</button>
+        <button @click="lookAtAngle">Look</button>
       </div>
     </div>
     
     <div class="letter-display">
-      <LetterPerson
-        :letter="currentLetter"
-        :options="letterOptions"
-        ref="letterRef"
-        @created="onLetterCreated"
-      />
-    </div>
+        <LetterPerson
+          :letter="currentLetter"
+          :options="letterOptions"
+          ref="letterRef"
+          @created="onLetterCreated"
+          @trackingChanged="onTrackingChanged"
+        />
+      </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
 // Use aliased import that Vite handles
 import LetterPerson, { type LetterPersonRef, type LetterOptions } from 'letterpeople/vue';
 
 // State
 const currentLetter = ref('L');
 const letterRef = ref<LetterPersonRef | null>(null);
+const eyeAngle = ref(0);
+const eyeTracking = ref(false);
+const trackingIntensity = ref(0.5);
+
 const letterOptions = reactive<LetterOptions>({
   color: '#add8e6',
   lineWidth: 25,
@@ -82,12 +121,20 @@ const letterOptions = reactive<LetterOptions>({
   mouthParams: {
     openness: 0.2,
     mood: 0.7
-  }
+  },
+  // Add eye tracking options
+  eyeTracking: false,
+  eyeTrackingIntensity: 0.5
 });
 
 // Event handlers
 const onLetterCreated = (instance: any) => {
   console.log('Letter instance created:', instance);
+};
+
+const onTrackingChanged = (isTracking: boolean) => {
+  console.log('Tracking changed:', isTracking);
+  eyeTracking.value = isTracking;
 };
 
 // Animation methods
@@ -102,6 +149,32 @@ const blinkEyes = () => {
 const waveArms = () => {
   letterRef.value?.wave();
 };
+
+const lookAtAngle = () => {
+  letterRef.value?.lookAt(eyeAngle.value);
+};
+
+// Eye tracking methods
+watch(eyeTracking, (newValue) => {
+  if (newValue) {
+    letterRef.value?.startEyeTracking({ intensity: trackingIntensity.value });
+  } else {
+    letterRef.value?.stopEyeTracking();
+  }
+  
+  // Update the options to reflect the current state
+  letterOptions.eyeTracking = newValue;
+});
+
+watch(trackingIntensity, (newValue) => {
+  letterOptions.eyeTrackingIntensity = newValue;
+  
+  // If tracking is active, update with new intensity
+  if (eyeTracking.value && letterRef.value) {
+    letterRef.value.stopEyeTracking();
+    letterRef.value.startEyeTracking({ intensity: newValue });
+  }
+});
 </script>
 
 <style scoped>
@@ -122,11 +195,17 @@ const waveArms = () => {
   gap: 15px;
 }
 
-.letter-input, .color-controls, .mouth-controls, .actions {
+.letter-input, .color-controls, .mouth-controls, .eye-controls, .actions {
   display: flex;
   gap: 15px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.tracking-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
 }
 
 label {

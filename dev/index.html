@@ -312,8 +312,55 @@
                     <span class="toggle-icon">▼</span>
                 </div>
                 <div class="panel-content collapsed" id="eyes-controls">
-                    <!-- Eye controls will go here -->
-                    <button id="blink-button" type="button">Blink</button>
+                    <div class="controls-row">
+                        <label class="control-item">
+                            Look Angle:
+                            <span class="range-value" id="eye-angle-value">0°</span>
+                            <input
+                                type="range"
+                                id="eye-angle-slider"
+                                min="0"
+                                max="360"
+                                value="0"
+                                step="15"
+                            />
+                        </label>
+                        <label class="control-item">
+                            Pupil Distance:
+                            <span class="range-value" id="eye-distance-value">50%</span>
+                            <input
+                                type="range"
+                                id="eye-distance-slider"
+                                min="0"
+                                max="100"
+                                value="50"
+                                step="5"
+                            />
+                        </label>
+                    </div>
+                    <div class="controls-row">
+                        <button id="blink-button" type="button">Blink</button>
+                        <button id="track-cursor-button" type="button">Track Cursor</button>
+                    </div>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="eye-tracking-checkbox" />
+                        <span>Follow Mouse Cursor</span>
+                    </label>
+                    <div class="controls-row">
+                        <label class="control-item">
+                            Tracking Intensity:
+                            <span class="range-value" id="tracking-intensity-value">50%</span>
+                            <input
+                                type="range"
+                                id="tracking-intensity-slider"
+                                min="0"
+                                max="100"
+                                value="50"
+                                step="5"
+                                disabled
+                            />
+                        </label>
+                    </div>
                 </div>
             </div>
 
