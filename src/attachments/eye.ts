@@ -1,9 +1,13 @@
 // src/attachments/eye.ts
 
-import { animate, AnimationParams, JSAnimation } from "animejs";
+import { animate, AnimationParams, JSAnimation, Timer } from "animejs";
 import type { EyeAttachment, EyesAttachment } from "./types";
 import { BaseController } from "./BaseController";
 import type { Point } from "../util/geometry";
+
+// Declare mouse position variables without modifying global Window
+let globalMouseX = 0;
+let globalMouseY = 0;
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -107,6 +111,12 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
   private _trackingIntensity: number = 0.5;
   private _trackingEase: string = "easeOutQuad";
 
+  // Event handler for mouse position
+  private _updateMousePosition = (e: MouseEvent) => {
+    globalMouseX = e.clientX;
+    globalMouseY = e.clientY;
+  };
+
   constructor(svgGroup: SVGGElement, options?: EyeOptions, center?: Point) {
     super(svgGroup, "eye");
 
@@ -172,25 +182,39 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
     // Store pupil position before wink
     const prevPupilPos = this.getPupilPosition();
 
-    // Animate closing
-    this._currentAnimation = animate(this.element, {
-      scaleY: [originalScaleY, 0.05],
-      duration: duration,
-      ease: ease, // Use the same ease for closing part
-      delay: 50,
-    });
-    await this._currentAnimation.then();
+    try {
+      // Animate closing
+      this._currentAnimation = animate(this.element, {
+        scaleY: [originalScaleY, 0.05],
+        duration: duration as number,
+        ease: ease, // Use the same ease for closing part
+        delay: 50,
+      });
+      
+      // Wait for animation to finish using promise based approach
+      await new Promise((resolve) => {
+        setTimeout(resolve, (duration as number) + 50);
+      });
 
-    if (!this._currentAnimation) return; // Animation might have been cancelled
+      // Animation might have been cancelled
+      if (this._isVisibleState === false) return; 
 
-    // Animate opening
-    this._currentAnimation = animate(this.element, {
-      scaleY: [0.05, originalScaleY],
-      duration: duration,
-      ease: ease, // Use the same ease for opening part
-    });
-    await this._currentAnimation.then();
-    this._currentAnimation = null;
+      // Animate opening
+      this._currentAnimation = animate(this.element, {
+        scaleY: [0.05, originalScaleY],
+        duration: duration as number,
+        ease: ease, // Use the same ease for opening part
+      });
+      
+      // Wait for animation to finish using promise based approach
+      await new Promise((resolve) => {
+        setTimeout(resolve, duration as number);
+      });
+    } catch (err) {
+      console.error("Wink animation error:", err);
+    } finally {
+      this._currentAnimation = null;
+    }
 
     // Restore pupil position if it was moved
     if (prevPupilPos.x !== 0 || prevPupilPos.y !== 0) {
@@ -248,33 +272,50 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
     const duration = options?.duration ?? 150;
     const ease = options?.ease ?? "easeOutQuad";
 
-    if (duration > 0) {
+    if (typeof duration === 'number' && duration > 0) {
       // Animate pupil to target position
       const startX = this._currentPupilOffset.x;
       const startY = this._currentPupilOffset.y;
 
-      this._currentAnimation = animate(
-        {
-          x: startX,
-          y: startY,
-        },
-        {
+      // Use a simple object to track properties
+      const animObj = { x: startX, y: startY };
+      
+      try {
+        // Create the animation
+        this._currentAnimation = animate(animObj, {
           x: targetX,
           y: targetY,
-          duration: duration,
+          duration: duration as number,
           ease: ease,
-          update: (anim) => {
-            const vals = anim.animatables[0].target;
-            pupil.setAttribute("cx", String(this._eyeCenter.x + vals.x));
-            pupil.setAttribute("cy", String(this._eyeCenter.y + vals.y));
-            this._currentPupilOffset = { x: vals.x, y: vals.y };
+          update: () => {
+            if (pupil) {
+              // Use the animated object directly
+              pupil.setAttribute("cx", String(this._eyeCenter.x + animObj.x));
+              pupil.setAttribute("cy", String(this._eyeCenter.y + animObj.y));
+              this._currentPupilOffset = { x: animObj.x, y: animObj.y };
+            }
           },
-        },
-      );
+        });
 
-      return this._currentAnimation.finished.then(() => {
+        // Wait for animation to finish using setTimeout instead of the animation promise
+        await new Promise<void>(resolve => {
+          setTimeout(() => {
+            // Update final position
+            if (pupil) {
+              pupil.setAttribute("cx", String(this._eyeCenter.x + targetX));
+              pupil.setAttribute("cy", String(this._eyeCenter.y + targetY));
+              this._currentPupilOffset = { x: targetX, y: targetY };
+            }
+            resolve();
+          }, duration as number);
+        });
+        
+        // Clean up
         this._currentAnimation = null;
-
+      } catch (err) {
+        console.error("Eye lookAt animation error:", err);
+        this._currentAnimation = null;
+      } finally {
         // Resume tracking if it was active before
         if (wasTracking) {
           this.startTracking({
@@ -282,7 +323,9 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
             ease: this._trackingEase,
           });
         }
-      });
+      }
+      
+      return;
     } else {
       // Immediately set position without animation
       pupil.setAttribute("cx", String(this._eyeCenter.x + targetX));
@@ -297,7 +340,7 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
         });
       }
 
-      return Promise.resolve();
+      return;
     }
   }
 
@@ -325,8 +368,8 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       if (!this._isTracking) return; // Exit if tracking stopped
 
       // Get current mouse position
-      const mouseX = window.mouseX ?? 0;
-      const mouseY = window.mouseY ?? 0;
+      const mouseX = globalMouseX;
+      const mouseY = globalMouseY;
 
       // Get element position relative to viewport
       const svgElement = this.element.closest("svg");
@@ -373,18 +416,9 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       this._trackingRAF = requestAnimationFrame(trackingLoop);
     };
 
-    // Setup mouse position tracking if not already available
-    if (
-      typeof window.mouseX === "undefined" ||
-      typeof window.mouseY === "undefined"
-    ) {
-      window.mouseX = 0;
-      window.mouseY = 0;
-      window.addEventListener("mousemove", (e) => {
-        window.mouseX = e.clientX;
-        window.mouseY = e.clientY;
-      });
-    }
+    // Setup mouse position tracking if not already set up
+    document.removeEventListener("mousemove", this._updateMousePosition);
+    document.addEventListener("mousemove", this._updateMousePosition);
 
     // Start the tracking loop
     this._trackingRAF = requestAnimationFrame(trackingLoop);
@@ -399,6 +433,8 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       cancelAnimationFrame(this._trackingRAF);
       this._trackingRAF = null;
     }
+    // Remove event listener when tracking stops
+    document.removeEventListener("mousemove", this._updateMousePosition);
   }
 
   /**

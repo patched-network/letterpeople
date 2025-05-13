@@ -119,9 +119,6 @@ let globalMouseY = 0;
 document.addEventListener("mousemove", (e) => {
   globalMouseX = e.clientX;
   globalMouseY = e.clientY;
-  // Make available to window for eye tracking
-  window.mouseX = globalMouseX;
-  window.mouseY = globalMouseY;
 });
 
 // --- State ---
