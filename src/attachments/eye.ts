@@ -169,6 +169,14 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
 
   // Eye animation: wink by scaling vertically
   async wink(options?: AnimationParams): Promise<void> {
+    // Store tracking state before winking
+    const wasTracking = this._isTracking;
+    
+    // Temporarily stop tracking during animation
+    if (wasTracking) {
+      this.stopTracking();
+    }
+    
     this.stopAnimations();
     const duration = options?.duration ?? 150; // Fast blink
     const ease = options?.ease ?? "inOutSine";
@@ -218,7 +226,15 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
 
     // Restore pupil position if it was moved
     if (prevPupilPos.x !== 0 || prevPupilPos.y !== 0) {
-      this.lookAt(prevPupilPos);
+      this.lookAt(prevPupilPos, { duration: 0 }); // Instantly restore position without animation
+    }
+    
+    // Resume tracking if it was active before
+    if (wasTracking) {
+      this.startTracking({
+        intensity: this._trackingIntensity,
+        ease: this._trackingEase
+      });
     }
   }
 
@@ -229,9 +245,10 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
     direction: { x: number; y: number } | number,
     options?: AnimationParams,
   ): Promise<void> {
-    // Stop any tracking while we manually position
-    const wasTracking = this._isTracking;
-    if (wasTracking) {
+    // Store tracking state (for potential later use) and stop tracking
+    // Note: We don't auto-resume tracking later - the caller is responsible for that
+    const wasTrackingLocal = this._isTracking;
+    if (wasTrackingLocal) {
       this.stopTracking();
     }
 
@@ -315,15 +332,10 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       } catch (err) {
         console.error("Eye lookAt animation error:", err);
         this._currentAnimation = null;
-      } finally {
-        // Resume tracking if it was active before
-        if (wasTracking) {
-          this.startTracking({
-            intensity: this._trackingIntensity,
-            ease: this._trackingEase,
-          });
-        }
       }
+      
+      // Note: We don't auto-resume tracking here
+      // The wink method or caller is responsible for managing tracking state
       
       return;
     } else {
@@ -332,13 +344,8 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       pupil.setAttribute("cy", String(this._eyeCenter.y + targetY));
       this._currentPupilOffset = { x: targetX, y: targetY };
 
-      // Resume tracking if it was active before
-      if (wasTracking) {
-        this.startTracking({
-          intensity: this._trackingIntensity,
-          ease: this._trackingEase,
-        });
-      }
+      // Note: We don't auto-resume tracking here
+      // The wink method or caller is responsible for managing tracking state
 
       return;
     }
