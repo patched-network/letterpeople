@@ -3,6 +3,7 @@
 import { animate, AnimationParams, JSAnimation } from "animejs";
 import type { EyeAttachment, EyesAttachment } from "./types";
 import { BaseController } from "./BaseController";
+import type { Point } from "../util/geometry";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -22,7 +23,8 @@ export interface EyeOptions {
   strokeColor?: string;
   /** Optional outline width for the sclera. Defaults to 0.5. */
   strokeWidth?: number;
-  // Future: pupilPosition?: Point; // For controlling where the pupil looks
+  /** Maximum distance the pupil can move from center (as a ratio of eye radius). Defaults to 0.3. */
+  pupilMobilityRatio?: number;
 }
 
 // --- Default values ---
@@ -32,6 +34,7 @@ const DEFAULT_PUPIL_COLOR = "black";
 const DEFAULT_PUPIL_RATIO = 0.4;
 const DEFAULT_STROKE_COLOR = "grey";
 const DEFAULT_STROKE_WIDTH = 0.5;
+const DEFAULT_PUPIL_MOBILITY_RATIO = 0.6; // How far the pupil can move from center (60% of radius)
 
 /**
  * Creates SVG elements representing a simple eye.
@@ -83,6 +86,7 @@ export function createEye(
   pupil.setAttribute("cy", String(y));
   pupil.setAttribute("r", String(pupilRadius));
   pupil.setAttribute("fill", pupilColor);
+  pupil.setAttribute("class", "letter-eye-pupil");
 
   // Add parts to the group
   group.appendChild(sclera);
@@ -95,8 +99,15 @@ export function createEye(
 class EyeControllerImpl extends BaseController implements EyeAttachment {
   readonly type = "eye";
   private _options: EyeOptions; // Store options for potential future use
+  private _eyeCenter: Point;
+  private _currentPupilOffset: Point = { x: 0, y: 0 }; // Offset from center
+  private _maxPupilOffset: number;
+  private _isTracking: boolean = false;
+  private _trackingRAF: number | null = null;
+  private _trackingIntensity: number = 0.5;
+  private _trackingEase: string = "easeOutQuad";
 
-  constructor(svgGroup: SVGGElement, options?: EyeOptions) {
+  constructor(svgGroup: SVGGElement, options?: EyeOptions, center?: Point) {
     super(svgGroup, "eye");
 
     this._options = {
@@ -107,15 +118,46 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       pupilSizeRatio: options?.pupilSizeRatio ?? DEFAULT_PUPIL_RATIO,
       strokeColor: options?.strokeColor ?? DEFAULT_STROKE_COLOR,
       strokeWidth: options?.strokeWidth ?? DEFAULT_STROKE_WIDTH,
+      pupilMobilityRatio:
+        options?.pupilMobilityRatio ?? DEFAULT_PUPIL_MOBILITY_RATIO,
       ...options,
     };
+
+    // Find eye center if not provided
+    if (center) {
+      this._eyeCenter = { ...center };
+    } else {
+      // Extract from the sclera element's cx/cy attributes
+      const sclera = this.element.querySelector(
+        "circle:not(.letter-eye-pupil)",
+      );
+      if (sclera) {
+        this._eyeCenter = {
+          x: parseFloat(sclera.getAttribute("cx") || "0"),
+          y: parseFloat(sclera.getAttribute("cy") || "0"),
+        };
+      } else {
+        // Fallback using element's bounding box
+        const bbox = this.element.getBoundingClientRect();
+        this._eyeCenter = {
+          x: bbox.width / 2,
+          y: bbox.height / 2,
+        };
+      }
+    }
+
+    // Calculate max pupil movement distance
+    const eyeSize = this._options.size ?? DEFAULT_EYE_SIZE;
+    const mobilityRatio =
+      this._options.pupilMobilityRatio ?? DEFAULT_PUPIL_MOBILITY_RATIO;
+    this._maxPupilOffset = (eyeSize / 2) * mobilityRatio;
   }
 
   toString(): string {
-    return `EyeAttachment: visible=${this.isVisible()}`;
+    return `EyeAttachment: visible=${this.isVisible()}, tracking=${this._isTracking}`;
   }
 
-  // Example of a specific eye animation (can be expanded)
+  // Eye animation: wink by scaling vertically
   async wink(options?: AnimationParams): Promise<void> {
     this.stopAnimations();
     const duration = options?.duration ?? 150; // Fast blink
@@ -127,11 +169,13 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
       ? parseFloat(this.element.style.transform.split("scaleY(")[1])
       : 1;
 
+    // Store pupil position before wink
+    const prevPupilPos = this.getPupilPosition();
+
     // Animate closing
     this._currentAnimation = animate(this.element, {
       scaleY: [originalScaleY, 0.05],
       duration: duration,
-
       ease: ease, // Use the same ease for closing part
       delay: 50,
     });
@@ -147,6 +191,229 @@ class EyeControllerImpl extends BaseController implements EyeAttachment {
     });
     await this._currentAnimation.then();
     this._currentAnimation = null;
+
+    // Restore pupil position if it was moved
+    if (prevPupilPos.x !== 0 || prevPupilPos.y !== 0) {
+      this.lookAt(prevPupilPos);
+    }
+  }
+
+  /**
+   * Makes the pupil look in a specific direction
+   */
+  async lookAt(
+    direction: { x: number; y: number } | number,
+    options?: AnimationParams,
+  ): Promise<void> {
+    // Stop any tracking while we manually position
+    const wasTracking = this._isTracking;
+    if (wasTracking) {
+      this.stopTracking();
+    }
+
+    // If we're animating the pupil, stop that animation
+    if (this._currentAnimation && this._currentAnimation.completed === false) {
+      this._currentAnimation.pause();
+      this._currentAnimation = null;
+    }
+
+    let targetX: number = 0;
+    let targetY: number = 0;
+
+    // Calculate target position based on input type
+    if (typeof direction === "number") {
+      // Direction is an angle in degrees
+      const angleInRadians = (direction * Math.PI) / 180;
+      targetX = Math.cos(angleInRadians) * this._maxPupilOffset;
+      targetY = Math.sin(angleInRadians) * this._maxPupilOffset;
+    } else {
+      // Direction is a point, normalize to max offset
+      const magnitude = Math.sqrt(
+        direction.x * direction.x + direction.y * direction.y,
+      );
+      if (magnitude > 0) {
+        const scale = Math.min(magnitude, this._maxPupilOffset) / magnitude;
+        targetX = direction.x * scale;
+        targetY = direction.y * scale;
+      }
+    }
+
+    // Get the pupil element
+    const pupil = this.element.querySelector(
+      ".letter-eye-pupil",
+    ) as SVGCircleElement;
+    if (!pupil) return Promise.resolve();
+
+    // Determine animation params
+    const duration = options?.duration ?? 150;
+    const ease = options?.ease ?? "easeOutQuad";
+
+    if (duration > 0) {
+      // Animate pupil to target position
+      const startX = this._currentPupilOffset.x;
+      const startY = this._currentPupilOffset.y;
+
+      this._currentAnimation = animate(
+        {
+          x: startX,
+          y: startY,
+        },
+        {
+          x: targetX,
+          y: targetY,
+          duration: duration,
+          ease: ease,
+          update: (anim) => {
+            const vals = anim.animatables[0].target;
+            pupil.setAttribute("cx", String(this._eyeCenter.x + vals.x));
+            pupil.setAttribute("cy", String(this._eyeCenter.y + vals.y));
+            this._currentPupilOffset = { x: vals.x, y: vals.y };
+          },
+        },
+      );
+
+      return this._currentAnimation.finished.then(() => {
+        this._currentAnimation = null;
+
+        // Resume tracking if it was active before
+        if (wasTracking) {
+          this.startTracking({
+            intensity: this._trackingIntensity,
+            ease: this._trackingEase,
+          });
+        }
+      });
+    } else {
+      // Immediately set position without animation
+      pupil.setAttribute("cx", String(this._eyeCenter.x + targetX));
+      pupil.setAttribute("cy", String(this._eyeCenter.y + targetY));
+      this._currentPupilOffset = { x: targetX, y: targetY };
+
+      // Resume tracking if it was active before
+      if (wasTracking) {
+        this.startTracking({
+          intensity: this._trackingIntensity,
+          ease: this._trackingEase,
+        });
+      }
+
+      return Promise.resolve();
+    }
+  }
+
+  /**
+   * Get current pupil position as offset from center
+   */
+  getPupilPosition(): { x: number; y: number } {
+    return { ...this._currentPupilOffset };
+  }
+
+  /**
+   * Start tracking the mouse cursor
+   */
+  startTracking(options?: { intensity?: number; ease?: string }): void {
+    if (this._isTracking) return; // Already tracking
+
+    // Update tracking parameters
+    this._trackingIntensity = options?.intensity ?? 0.5;
+    this._trackingEase = options?.ease ?? "easeOutQuad";
+
+    this._isTracking = true;
+
+    // Start tracking loop
+    const trackingLoop = () => {
+      if (!this._isTracking) return; // Exit if tracking stopped
+
+      // Get current mouse position
+      const mouseX = window.mouseX ?? 0;
+      const mouseY = window.mouseY ?? 0;
+
+      // Get element position relative to viewport
+      const svgElement = this.element.closest("svg");
+      if (!svgElement) return;
+
+      // Get SVG's position and scale
+      const svgRect = svgElement.getBoundingClientRect();
+      const svgScale = svgRect.width / svgElement.viewBox.baseVal.width || 1;
+
+      // Get eye position in viewport coordinates
+      const eyeRectX = this._eyeCenter.x * svgScale + svgRect.left;
+      const eyeRectY = this._eyeCenter.y * svgScale + svgRect.top;
+
+      // Calculate direction vector from eye to mouse
+      const dirX = mouseX - eyeRectX;
+      const dirY = mouseY - eyeRectY;
+
+      // Calculate distance
+      const distance = Math.sqrt(dirX * dirX + dirY * dirY);
+
+      if (distance > 0) {
+        // Normalize and scale by intensity and max offset
+        const scale =
+          (Math.min(distance, this._maxPupilOffset) / distance) *
+          this._trackingIntensity;
+        const targetX = dirX * scale;
+        const targetY = dirY * scale;
+
+        // Get the pupil element
+        const pupil = this.element.querySelector(
+          ".letter-eye-pupil",
+        ) as SVGCircleElement;
+        if (pupil) {
+          // Apply movement with easing
+          const newX = this._eyeCenter.x + targetX;
+          const newY = this._eyeCenter.y + targetY;
+          pupil.setAttribute("cx", String(newX));
+          pupil.setAttribute("cy", String(newY));
+          this._currentPupilOffset = { x: targetX, y: targetY };
+        }
+      }
+
+      // Continue tracking loop
+      this._trackingRAF = requestAnimationFrame(trackingLoop);
+    };
+
+    // Setup mouse position tracking if not already available
+    if (
+      typeof window.mouseX === "undefined" ||
+      typeof window.mouseY === "undefined"
+    ) {
+      window.mouseX = 0;
+      window.mouseY = 0;
+      window.addEventListener("mousemove", (e) => {
+        window.mouseX = e.clientX;
+        window.mouseY = e.clientY;
+      });
+    }
+
+    // Start the tracking loop
+    this._trackingRAF = requestAnimationFrame(trackingLoop);
+  }
+
+  /**
+   * Stop tracking the cursor
+   */
+  stopTracking(): void {
+    this._isTracking = false;
+    if (this._trackingRAF !== null) {
+      cancelAnimationFrame(this._trackingRAF);
+      this._trackingRAF = null;
+    }
+  }
+
+  /**
+   * Check if tracking is active
+   */
+  isTracking(): boolean {
+    return this._isTracking;
+  }
+
+  /**
+   * Override the parent stopAnimations to include tracking
+   */
+  stopAnimations(): void {
+    super.stopAnimations();
+    this.stopTracking();
   }
 }
 
@@ -170,6 +437,30 @@ class EyesGroupControllerImpl implements EyesAttachment {
 
   async blink(options?: AnimationParams): Promise<void> {
     await Promise.all([this.left.wink(options), this.right.wink(options)]);
+  }
+
+  async lookAt(
+    direction: { x: number; y: number } | number,
+    options?: AnimationParams,
+  ): Promise<void> {
+    await Promise.all([
+      this.left.lookAt(direction, options),
+      this.right.lookAt(direction, options),
+    ]);
+  }
+
+  startTracking(options?: { intensity?: number; ease?: string }): void {
+    this.left.startTracking(options);
+    this.right.startTracking(options);
+  }
+
+  stopTracking(): void {
+    this.left.stopTracking();
+    this.right.stopTracking();
+  }
+
+  isTracking(): boolean {
+    return this.left.isTracking() || this.right.isTracking();
   }
 
   isVisible(): boolean {
@@ -206,8 +497,9 @@ class EyesGroupControllerImpl implements EyesAttachment {
 export function createEyeController(
   svgGroup: SVGGElement,
   options?: EyeOptions,
+  center?: Point,
 ): EyeAttachment {
-  return new EyeControllerImpl(svgGroup, options);
+  return new EyeControllerImpl(svgGroup, options, center);
 }
 
 /**

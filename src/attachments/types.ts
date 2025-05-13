@@ -94,12 +94,73 @@ export interface EyesAttachment {
 
   // and helper fcns that apply actions to both eyes - eg, blink, scowl, etc
   blink(blinkOptions?: AnimationParams): Promise<void>;
+  
+  /**
+   * Make both eyes look in the specified direction
+   * @param direction The direction to look in as {x, y} coordinates or angle in degrees
+   * @param options Optional animation parameters for the eye movement
+   */
+  lookAt(direction: { x: number, y: number } | number, options?: AnimationParams): Promise<void>;
+  
+  /**
+   * Start tracking the mouse cursor with both eyes
+   * @param options Options for tracking behavior
+   */
+  startTracking(options?: {
+    intensity?: number;  // How strongly the eyes follow (0-1), defaults to 0.5
+    ease?: string;       // Easing function for tracking movement
+  }): void;
+  
+  /**
+   * Stop tracking the cursor with both eyes
+   */
+  stopTracking(): void;
+  
+  /**
+   * Check if eyes are currently tracking the cursor
+   */
+  isTracking(): boolean;
 }
 
 export interface EyeAttachment extends BaseAttachment {
   readonly type: "eye";
 
+  /**
+   * Causes the eye to quickly close and reopen
+   * @param blinkOptions Optional animation parameters for the wink.
+   */
   wink(blinkOptions?: AnimationParams): Promise<void>;
+  
+  /**
+   * Makes the pupil look in a specific direction
+   * @param direction The direction to look in as {x, y} coordinates or angle in degrees.
+   * @param options Optional animation parameters for the eye movement.
+   */
+  lookAt(direction: { x: number, y: number } | number, options?: AnimationParams): Promise<void>;
+  
+  /**
+   * Returns the current position of the pupil as an offset from center
+   */
+  getPupilPosition(): { x: number, y: number };
+  
+  /**
+   * Start tracking the mouse cursor with the pupil
+   * @param options Options for tracking behavior
+   */
+  startTracking(options?: {
+    intensity?: number;  // How strongly the eyes follow (0-1), defaults to 0.5
+    ease?: string;       // Easing function for tracking movement
+  }): void;
+  
+  /**
+   * Stop tracking the cursor
+   */
+  stopTracking(): void;
+  
+  /**
+   * Check if this eye is currently tracking the cursor
+   */
+  isTracking(): boolean;
 }
 
 export interface ArmsAttachment {
