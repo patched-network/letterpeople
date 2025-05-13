@@ -27,6 +27,8 @@ const letterL = createLetter('L', container, {
     mood: 0.7             // How happy/sad the mouth is (0-1)
   },
   eyeSize: 8,             // Size of the eyes
+  eyeTracking: true,      // Enable cursor tracking
+  eyeTrackingIntensity: 0.5, // How strongly eyes follow cursor (0-1)
   armLength: 15,          // Length of arms
   armThickness: 3,        // Thickness of arms
   armColor: '#333333'     // Color of arms
@@ -36,6 +38,12 @@ const letterL = createLetter('L', container, {
 letterL.mouth.animateSpeak();  // Make the mouth speak
 letterL.eyes.blink();          // Make the eyes blink
 letterL.arms.wave();           // Make the arms wave
+
+// Eye tracking and looking
+letterL.eyes.lookAt(45);      // Look at 45 degree angle
+letterL.eyes.lookAt({x: 5, y: -2}); // Look at specific offset coordinates
+letterL.eyes.startTracking({intensity: 0.6}); // Follow cursor with 60% intensity
+letterL.eyes.stopTracking();  // Stop following cursor
 
 // Control individual parts
 letterL.mouth.updateShape({ openness: 0.5, mood: 0.2 });
@@ -62,10 +70,13 @@ LetterPeople includes a Vue 3 component for easy integration:
       :options="letterOptions"
       ref="letterRef"
       @created="onLetterCreated"
+      @trackingChanged="onTrackingChanged"
     />
     
     <button @click="animateMouth">Speak</button>
     <button @click="blinkEyes">Blink</button>
+    <button @click="lookAt45">Look</button>
+    <button @click="toggleTracking">Toggle Tracking</button>
   </div>
 </template>
 
@@ -83,7 +94,9 @@ const letterOptions = reactive({
   mouthParams: {
     openness: 0.2,
     mood: 0.7
-  }
+  },
+  eyeTracking: false,        // Whether eyes follow cursor
+  eyeTrackingIntensity: 0.5  // How strongly eyes follow cursor (0-1)
 });
 
 const animateMouth = () => {
@@ -92,6 +105,20 @@ const animateMouth = () => {
 
 const blinkEyes = () => {
   letterRef.value?.blink();
+};
+
+const lookAt45 = () => {
+  letterRef.value?.lookAt(45); // Look at 45 degree angle
+};
+
+const toggleTracking = () => {
+  letterRef.value?.toggleEyeTracking({
+    intensity: 0.7 // Tracking intensity (0-1)
+  });
+};
+
+const onTrackingChanged = (isTracking) => {
+  console.log('Tracking state changed:', isTracking);
 };
 </script>
 ```
@@ -155,11 +182,23 @@ interface LetterInstance {
   };
   
   eyes: {
-    left: { show(), hide(), wink() };
-    right: { show(), hide(), wink() };
+    left: { 
+      show(), hide(), wink(),
+      lookAt(direction), // Make pupil look in direction
+      startTracking(), stopTracking(), isTracking()
+    };
+    right: {
+      show(), hide(), wink(),
+      lookAt(direction), // Make pupil look in direction
+      startTracking(), stopTracking(), isTracking()
+    };
     show(): Promise<void>;
     hide(): Promise<void>;
     blink(options?: object): Promise<void>;
+    lookAt(direction: number | {x,y}, options?): Promise<void>; // Look in direction (angle or coordinates)
+    startTracking(options?: {intensity?: number, ease?: string}): void; // Follow the cursor
+    stopTracking(): void; // Stop following cursor
+    isTracking(): boolean; // Check if currently tracking
   };
   
   arms: {
@@ -174,9 +213,72 @@ interface LetterInstance {
 }
 ```
 
+## Eye Tracking & Looking Functionality
+
+LetterPeople includes an eye tracking feature that makes letters' eyes follow the mouse cursor:
+
+```javascript
+// Basic eye direction controls
+letterL.eyes.lookAt(45);  // Look at 45 degree angle
+letterL.eyes.lookAt({x: 3, y: -2});  // Look at specific offset coordinates
+
+// Make eyes follow the cursor
+letterL.eyes.startTracking();  // Start tracking with default settings
+letterL.eyes.startTracking({intensity: 0.6});  // Track with 60% intensity
+letterL.eyes.startTracking({intensity: 0.8, ease: "easeOutQuad"});  // With custom easing
+
+// Check and control tracking state
+const isTracking = letterL.eyes.isTracking();  // Check if tracking is active
+letterL.eyes.stopTracking();  // Stop tracking
+
+// Individual eye control
+letterL.eyes.left.lookAt(30);  // Left eye looks at 30 degrees
+letterL.eyes.right.lookAt(-30);  // Right eye looks at -30 degrees
+
+// Animation options for looking
+letterL.eyes.lookAt(90, {duration: 300, ease: "easeOutSine"});  // Animated eye movement
+```
+
+### Tracking in Vue Component
+
+```vue
+<template>
+  <div class="letter-container">
+    <LetterPerson
+      letter="L"
+      :options="{ eyeTracking: true, eyeTrackingIntensity: 0.7 }"
+      ref="letterRef"
+      @trackingChanged="onTrackingChanged"
+    />
+    <button @click="toggleTracking">Toggle Eye Tracking</button>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import LetterPerson from 'letterpeople/vue';
+
+const letterRef = ref(null);
+const isTracking = ref(true);
+
+const toggleTracking = () => {
+  // Returns current tracking state after toggle
+  isTracking.value = letterRef.value?.toggleEyeTracking({
+    intensity: 0.8
+  });
+};
+
+const onTrackingChanged = (trackingState) => {
+  isTracking.value = trackingState;
+  console.log(`Eye tracking: ${trackingState ? 'on' : 'off'}`);
+};
+</script>
+```
+
 ## Tips for Best Results
 
 - Use a container with sufficient width/height to display the letter properly
 - For lowercase letters with descenders (g, j, p, q, y), ensure extra vertical space
 - For responsive layouts, apply CSS scaling to the container rather than the SVG
 - When animating multiple letters, stagger the animations for a more natural effect
+- When using eye tracking with multiple letters, all eyes will follow the cursor independently
