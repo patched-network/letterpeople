@@ -47,6 +47,7 @@ import d from "./letters/d-lowercase";
 import D from "./letters/D-uppercase";
 import E from "./letters/E-uppercase";
 import F from "./letters/F-uppercase";
+import f from "./letters/f-lowercase";
 import G from "./letters/G-uppercase";
 import g from "./letters/g-lowercase";
 import H from "./letters/H-uppercase";
@@ -97,6 +98,7 @@ const letterRenderers: {
   D: D,
   E: E,
   F: F,
+  f: f,
   G: G,
   g: g,
   h: h,
