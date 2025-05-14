@@ -47,7 +47,9 @@ import d from "./letters/d-lowercase";
 import D from "./letters/D-uppercase";
 import E from "./letters/E-uppercase";
 import F from "./letters/F-uppercase";
+import f from "./letters/f-lowercase";
 import G from "./letters/G-uppercase";
+import g from "./letters/g-lowercase";
 import H from "./letters/H-uppercase";
 import h from "./letters/h-lowercase";
 import i from "./letters/i-lowercase";
@@ -96,7 +98,9 @@ const letterRenderers: {
   D: D,
   E: E,
   F: F,
+  f: f,
   G: G,
+  g: g,
   h: h,
   i: i,
   I: I,
@@ -252,9 +256,13 @@ export function createLetter(
       { size: options?.eyeSize },
     );
     contentGroup.appendChild(leftEyeSvgElement);
-    leftEyeCtrl = createEyeController(leftEyeSvgElement, {
-      size: options?.eyeSize,
-    }, attachmentCoords.leftEye);
+    leftEyeCtrl = createEyeController(
+      leftEyeSvgElement,
+      {
+        size: options?.eyeSize,
+      },
+      attachmentCoords.leftEye,
+    );
 
     let rightEyeCtrl: EyeAttachment;
 
@@ -264,9 +272,13 @@ export function createLetter(
       { size: options?.eyeSize },
     );
     contentGroup.appendChild(rightEyeSvgElement);
-    rightEyeCtrl = createEyeController(rightEyeSvgElement, {
-      size: options?.eyeSize,
-    }, attachmentCoords.rightEye);
+    rightEyeCtrl = createEyeController(
+      rightEyeSvgElement,
+      {
+        size: options?.eyeSize,
+      },
+      attachmentCoords.rightEye,
+    );
 
     // Create the eyes group controller
     const eyesController: EyesAttachment = createEyesGroupController(

@@ -26,13 +26,12 @@ const DEFAULT_OUTLINE_WIDTH = 1;
 
 /**
  * @internal
- * Renders the base shape and calculates attachment points for the lowercase letter 'r'.
- * This function uses a vertical stem on the left with a quarter circle hook at the top right.
+ * Renders the base shape and calculates attachment points for the lowercase letter 'f'.
  *
  * @param options - Configuration options for the letter's appearance.
  * @returns An object containing the base SVG element and attachment coordinates.
  */
-function renderR_lowercase(
+function renderF_lowercase(
   options?: LetterOptions,
 ): InternalLetterRenderResult {
   // --- SVG Setup ---
@@ -53,64 +52,59 @@ function renderR_lowercase(
   const H = VIEWBOX_HEIGHT;
 
   // Vertical stem position (left side)
-  const stemLeftEdgeX = 0;
+  const stemLeftEdgeX = (W - stemWidth) / 2;
   const stemRightEdgeX = stemLeftEdgeX + stemWidth;
-  const stemTopY = H - EFFECTIVE_LOWERCASE_HEIGHT; // Start at lowercase height
-  const stemBottomY = H;
 
-  const stemUpperLeft: Point = {
-    x: stemLeftEdgeX,
-    y: stemTopY,
-  };
-  const stemUpperRight: Point = {
-    x: stemRightEdgeX,
-    y: stemTopY,
-  };
-  const stemBottomLeft: Point = {
-    x: stemLeftEdgeX,
-    y: stemBottomY,
-  };
-  const stemBottomRight: Point = {
-    x: stemRightEdgeX,
-    y: stemBottomY,
-  };
-
+  /** Defining the arc at top of `f` */
   const circles = lowerCaseCircles(limbThickness);
+  // tangent to top of viewbox
+  circles.inner.y = circles.outer.r;
+  circles.outer.y = circles.outer.r;
+  // position onto stem
+  circles.inner.x = stemLeftEdgeX + circles.outer.r;
+  circles.outer.x = stemLeftEdgeX + circles.outer.r;
 
-  const upperArcStemIntersection = getVerticalLineCircleIntersections(
-    stemRightEdgeX,
-    circles.outer,
-  ).upperIntersection!;
-  const lowerArcStemIntersection = getVerticalLineCircleIntersections(
-    stemRightEdgeX,
-    circles.inner,
-  ).upperIntersection!;
+  const stemTopY = circles.inner.y; // Start at lowercase height
+  const stemBottomY = H;
+  const crossTopY = H - EFFECTIVE_LOWERCASE_HEIGHT;
+  const crossBottomY = crossTopY + limbThickness;
+  const upperArcPoint = pointAtAngle(-40, circles.outer);
+  const lowerArcPoint = pointAtAngle(-40, circles.inner);
 
-  // console.log(upperArcStemIntersection);
-  // console.log(lowerArcStemIntersection);
-
-  if (!upperArcStemIntersection) {
-    alert("no upperintersection");
-  }
-  if (!lowerArcStemIntersection) {
-    alert("no lowerIntersection");
-  }
-
-  const upperArcPoint = pointAtAngle(-20, circles.outer);
-  const lowerArcPoint = pointAtAngle(-20, circles.inner);
+  // Log circle and arc point values for debugging
+  console.log("Inner circle:", {
+    x: circles.inner.x,
+    y: circles.inner.y,
+    r: circles.inner.r,
+  });
+  console.log("Outer circle:", {
+    x: circles.outer.x,
+    y: circles.outer.y,
+    r: circles.outer.r,
+  });
+  console.log("Upper arc point:", upperArcPoint);
+  console.log("Lower arc point:", lowerArcPoint);
 
   // --- Path Definition ---
   const path = document.createElementNS(svgNS, "path");
   // Start at the top left of the stem, then move clockwise
   const pathData = [
-    `M ${stemUpperLeft.x} ${stemUpperLeft.y}`, // Start at the upper left
-    `L ${stemUpperRight.x} ${stemUpperRight.y}`, // Line across
-    `L ${upperArcStemIntersection.x} ${upperArcStemIntersection.y}`, // Line down to where the arc begins
-    `A ${circles.outer.r} ${circles.outer.r} 0 0 1 ${upperArcPoint.x} ${upperArcPoint.y}`, // Arc out to outer point
-    `L ${lowerArcPoint.x} ${lowerArcPoint.y}`, // Line to the lower point of arc arm
-    `A ${circles.inner.r} ${circles.inner.r} 0 0 0 ${lowerArcStemIntersection.x} ${lowerArcStemIntersection.y}`, // arc back to stem
-    `L ${stemRightEdgeX} ${stemBottomY}`, // Line down to bottom right of stem
-    `L ${stemLeftEdgeX} ${stemBottomY}`, // Line to top left of stem
+    `M ${stemLeftEdgeX} ${stemTopY}`,
+    `A ${circles.outer.r} ${circles.outer.r} 0 0 1 ${upperArcPoint.x} ${upperArcPoint.y}`,
+    `L ${lowerArcPoint.x} ${lowerArcPoint.y}`,
+    `A ${circles.inner.r} ${circles.inner.r} 0 0 0 ${stemRightEdgeX} ${stemTopY}`,
+    `L ${stemRightEdgeX} ${crossTopY}`,
+    `L ${stemRightEdgeX + limbThickness * 0.65} ${crossTopY}`,
+    `L ${stemRightEdgeX + limbThickness * 0.65} ${crossBottomY}`,
+    `L ${stemRightEdgeX} ${crossBottomY}`,
+    `L ${stemRightEdgeX} ${stemBottomY}`,
+    `L ${stemLeftEdgeX} ${stemBottomY}`,
+    `L ${stemLeftEdgeX} ${crossBottomY}`,
+    `L ${stemLeftEdgeX - limbThickness * 0.65} ${crossBottomY}`,
+    `L ${stemLeftEdgeX - limbThickness * 0.65} ${crossTopY}`,
+    `L ${stemLeftEdgeX} ${crossTopY}`,
+    `L ${stemLeftEdgeX} ${stemTopY}`,
+
     `Z`, // Close path
   ].join(" ");
 
@@ -135,16 +129,16 @@ function renderR_lowercase(
 
     // Mouth positioned at the curve of the arc
     mouth: {
-      x: limbThickness / 2,
-      y: lowerArcStemIntersection.y + limbThickness / 2,
+      x: W / 2,
+      y: crossTopY + limbThickness / 3,
     },
 
     // Hat sits on top of the stem
-    hat: { x: stemWidth / 2, y: stemTopY - outlineWidth / 2 },
+    hat: { x: circles.inner.x, y: 0 },
 
     // Arms
-    leftArm: { x: outlineWidth / 2, y: H * 0.6 }, // On the stem
-    rightArm: midpoint(lowerArcPoint, upperArcPoint), // At the end of the arc
+    leftArm: { x: stemLeftEdgeX, y: crossBottomY + limbThickness / 2 }, // On the stem
+    rightArm: { x: stemRightEdgeX, y: crossBottomY + limbThickness / 2 },
 
     // Legs at the bottom of the stem
     leftLeg: { x: stemLeftEdgeX + stemWidth * 0.25, y: H - outlineWidth / 2 },
@@ -157,4 +151,4 @@ function renderR_lowercase(
   };
 }
 
-export default renderR_lowercase;
+export default renderF_lowercase;
