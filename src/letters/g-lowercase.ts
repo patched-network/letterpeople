@@ -8,8 +8,12 @@ import {
   Circle,
   Point,
   getVerticalLineCircleIntersections,
+  pointAtAngle,
 } from "../util/geometry";
-import { placeFaceFeatures } from "../util/circle-letter-utils";
+import {
+  lowerCaseCircles,
+  placeFaceFeatures,
+} from "../util/circle-letter-utils";
 import { EFFECTIVE_LOWERCASE_HEIGHT } from "./CONSTS";
 
 // Define constants for our coordinate space
@@ -22,14 +26,13 @@ const DEFAULT_OUTLINE_WIDTH = 1;
 
 /**
  * @internal
- * Renders the base shape and calculates attachment points for the lowercase letter 'a'.
+ * Renders the base shape and calculates attachment points for the lowercase letter 'g'.
  * This function uses a circle on the left and a vertical stem on the right,
- * with the stem cut off at the lowercase height constant.
  *
  * @param options - Configuration options for the letter's appearance.
  * @returns An object containing the base SVG element and attachment coordinates.
  */
-function renderA_lowercase(
+function renderG_lowercase(
   options?: LetterOptions,
 ): InternalLetterRenderResult {
   // --- SVG Setup ---
@@ -51,7 +54,7 @@ function renderA_lowercase(
 
   // Circle properties (bowl of the 'a')
   const circleOuterRadius = EFFECTIVE_LOWERCASE_HEIGHT / 2;
-  const circleCenterY = H - EFFECTIVE_LOWERCASE_HEIGHT / 2; // Positioned towards the bottom
+  const circleCenterY = EFFECTIVE_LOWERCASE_HEIGHT / 2; // Positioned towards the bottom
   const circleInnerRadius = circleOuterRadius - limbThickness;
 
   // Position the circle on the left side of its allocated space
@@ -73,7 +76,7 @@ function renderA_lowercase(
   // Unlike 'd', we cut this off at the lowercase height
   const stemRightEdgeX = W;
   const stemLeftEdgeX = stemRightEdgeX - stemWidth;
-  const stemTopY = H - EFFECTIVE_LOWERCASE_HEIGHT; // Cut off at lowercase height
+  const stemTopY = 0; // stem at top
 
   const stemUpperLeft: Point = {
     x: stemLeftEdgeX,
@@ -91,6 +94,10 @@ function renderA_lowercase(
     x: stemRightEdgeX,
     y: H,
   };
+
+  const stemCircles = lowerCaseCircles(limbThickness);
+  const lowerArcPoint = pointAtAngle(110, stemCircles.outer);
+  const upperArcPoint = pointAtAngle(110, stemCircles.inner);
 
   // Calculate connection between stem and circle
   // The stem connects to the circle along the line x = stemLeftEdgeX
@@ -117,8 +124,15 @@ function renderA_lowercase(
     `M ${upperConnection.x} ${upperConnection.y}`, // Start at the upper connection point (stem's left, top-ish)
     `L ${stemUpperLeft.x} ${stemUpperLeft.y}`, // Line to top left of stem (at lowercase height)
     `L ${stemUpperRight.x} ${stemUpperRight.y}`, // Line to top right of stem (at lowercase height)
-    `L ${stemBottomRight.x} ${stemBottomRight.y}`, // Line to bottom right of stem
-    `L ${stemBottomLeft.x} ${stemBottomLeft.y}`, // Line to bottom left of stem
+    // `L ${stemBottomRight.x} ${stemBottomRight.y}`, // Line to bottom right of stem
+    // `L ${stemBottomLeft.x} ${stemBottomLeft.y}`, // Line to bottom left of stem
+    `L ${stemUpperRight.x} ${stemCircles.outer.y}`,
+    // Arc from bottom right of stem to bottom left of stem
+    `A ${stemCircles.outer.r} ${stemCircles.outer.r} 0 0 1 ${W / 2} ${H}`, // Arc to bottom
+    `A ${stemCircles.outer.r} ${stemCircles.outer.r} 0 0 1 ${0} ${stemCircles.outer.y + limbThickness / 8}`, // finish stem arc
+    `L ${limbThickness} ${stemCircles.outer.y + limbThickness / 8}`,
+    `A ${stemCircles.inner.r} ${stemCircles.inner.r} 0 0 0 ${stemUpperLeft.x} ${stemCircles.inner.y}`, // Arc for stem
+
     `L ${lowerConnection.x} ${lowerConnection.y}`, // Line to the lower connection point (stem's left, bottom-ish)
     // Arc from lower connection to upper connection, forming the left side of the 'a'
     // Using large-arc-flag=1, sweep-flag=1
@@ -185,4 +199,4 @@ function renderA_lowercase(
   };
 }
 
-export default renderA_lowercase;
+export default renderG_lowercase;
