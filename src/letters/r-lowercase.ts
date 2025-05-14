@@ -86,9 +86,8 @@ function renderR_lowercase(
     circles.inner,
   ).upperIntersection!;
 
-  console.log(upperArcStemIntersection);
-
-  console.log(lowerArcStemIntersection);
+  // console.log(upperArcStemIntersection);
+  // console.log(lowerArcStemIntersection);
 
   if (!upperArcStemIntersection) {
     alert("no upperintersection");
