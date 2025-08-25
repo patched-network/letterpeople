@@ -118,7 +118,7 @@ const toggleEyeTracking = (options = {}) => {
 };
 
 // Watch for changes in tracking prop
-watch(() => props.options?.eyeTracking, (newValue) => {
+watch(() => props.options?.eyeTracking, (newValue: boolean | undefined) => {
   if (newValue && !isTracking.value) {
     startEyeTracking();
   } else if (newValue === false && isTracking.value) {
