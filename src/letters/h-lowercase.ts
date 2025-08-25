@@ -16,7 +16,6 @@ import {
   placeFaceFeatures,
 } from "../util/circle-letter-utils";
 import { EFFECTIVE_LOWERCASE_HEIGHT, VIEWBOX_HEIGHT } from "./CONSTS";
-import { win32 } from "node:path/win32";
 
 // Define constants for our coordinate space
 const VIEWBOX_WIDTH = 60;
